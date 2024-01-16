@@ -27,11 +27,11 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 
 # Import all necessary libraries for deep learning
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.models import load_model
+# import tensorflow as tf
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import Dense, Dropout
+# from tensorflow.keras.callbacks import EarlyStopping
+# from tensorflow.keras.models import load_model
 
 from abc import ABC, abstractmethod
 import inspect
@@ -59,6 +59,17 @@ from PIL import Image
 # from skimage.color import rgb2gray
 # from skimage.feature import hog
 # from skimage import exposure
+
+model_dict = {
+    "SupportVector": "SVM",
+    "KNearestNeighbour": "kNN",
+    "LinearRegression": "LinReg",
+    "NaiveBayes": "NB",
+    "MultiLayerPerceptron": "MLP",
+    "DecisionTree": "DT",
+    "RandomForest": "RF",
+    "NeuralNetwork": "NN"
+}
 
 
 class BasePredictor(ABC):
@@ -244,6 +255,12 @@ class ML(BasePredictor):
         predictions = model.predict_classes(X_test)
         print(classification_report(y_test, predictions))
         return model
+
+    def fit(self, X, y):
+        pass
+
+    def predict(self, X):
+        return super().predict(X)
     
 class ffnn(BasePredictor):
     def __init__(self, hidden_layers = [], dropout = 0, epochs = 5, activation = [],batch_size = None):
@@ -285,22 +302,23 @@ class ffnn(BasePredictor):
 
 # Generate some data to test the class using numpy and pandas
 data = np.random.randint(0, 100, (1000, 50))
+# print(data)
 data = pd.DataFrame(data)
 data['target'] = np.random.randint(0, 2, 1000)
-print(data.head())
+# print(data.head())
 
 # Initialise the class
-ml = ML(data)
+# ml = ML(data)
 
 # Split the data into X and y
-X, y = ml.split_X_y(X='target', y='target')
-print(X.head())
-print(y.head())
+# X, y = ml.split_X_y(X='target', y='target')
+# print(X.head())
+# print(y.head())
 
 # Encode the categorical data
-X, y = ml.encode_categorical(X, y)
-print(X.head())
-print(y.head())
+# X, y = ml.encode_categorical(X, y)
+# print(X.head())
+# print(y.head())
 
 # Deal with missing data
 # X, y = ml.missing_data(X, y)
@@ -315,34 +333,123 @@ print(y.head())
 # print(y_test.shape)
 
 # Split the data into training and testing sets
-X_train, X_test, y_train, y_test = ml.split_data(X, y)
-print(X_train.shape)
-print(X_test.shape)
-print(y_train.shape)
-print(y_test.shape)
+# X_train, X_test, y_train, y_test = ml.split_data(X, y)
+# print(X_train.shape)
+# print(X_test.shape)
+# print(y_train.shape)
+# print(y_test.shape)
 
-# Scale the data
-X_train, X_test = ml.scale_data(X_train, X_test)
-print(X_train.shape)
-print(X_test.shape)
+# # Scale the data
+# X_train, X_test = ml.scale_data(X_train, X_test)
+# print(X_train.shape)
+# print(X_test.shape)
 
-# Apply logistic regression
-logmodel = ml.logistic_regression(X_train, X_test, y_train, y_test)
-print(logmodel)
+# # Apply logistic regression
+# logmodel = ml.logistic_regression(X_train, X_test, y_train, y_test)
+# print(logmodel)
 
 # Create meta class to apply all machine learning algorithms
 class ML_meta:
-    def __init__(self, data):
+    """
+    A meta class that handles the application of all ML models. 
+    The current models are:
+    - Support Vector Machine
+    - Naive Bayes
+    - Decision Tree
+    - Logistic Regression
+    - Multi-Layered Perceptron
+    - Random Forest
+    - k-Nearest-Neighbour
+
+    Includes the call to instantiate the ML class and apply test-train split
+
+    arguements: 
+    data - input dataset in disordered format - Column labelled dataset
+    ffnn - whether usage of the feed-forward neural network to make a prediction - True or False
+    all - whether or not to apply all classifier models to the singe dataset - True or False
+
+    """
+    def __init__(self, data, ffnn=False, all=True, model=False, model_dict={}):
         self.data = data
+        self.ffnn = ffnn
+        self.all = all
+        self.model = model
+        self.model_dict = model_dict
 
     # Call the ML class to apply all machine learning algorithms
     def call_ML(self):
         ml = ML(self.data)
         return ml
-    
+
+
+    def split_data(self, encode_categorical=True):
+        ml = self.call_ML(self.data)
+        X, y = ml.split_X_y(self.data)
+        if encode_categorical:
+            X, y = ml.encode_categorical(X, y)
+
+        return X, y
+
+    def apply_all_models(self, flag=False):
+        if flag == False:
+            pass
+        else:
+            ml = self.call_ML(self.data)
+            #Apply test train split
+            X, y = self.split_data(self.data)
+            
+
+            RandomForest = ml.rfc(X_train, X_test, y_train, y_test)
+            SupportVector = ml.svm(X_train, X_test, y_train, y_test)
+            LogRegression = ml.logistic_regression(X_train, X_test, y_train, y_test)
+            KNearest = ml.knn(X_train, X_test, y_train, y_test)
+            NaiveBayes = ml.naive_bayes(X_train, X_test, y_train, y_test)
+
+
+
+    def apply_neural_net(self):
+        if self.ffnn:
+            ffnn_predictor = ffnn(3, activation='sigmoid', batch_size=5)
+            ml_obj = ML(self.data)
+            x, Y = ml_obj.split_X_y(X='target', y='target')
+            X_train, X_test, y_train, y_test = ml_obj.split_data(x, Y)
+
+            ffnn_predictor.fit(X_train, y_train)
+            ffnn_predictor.predict(X_test)
+
+    def apply_single_model(self):
+        self.model_dict = {
+                                        "SupportVector": "SVM",
+                                        "KNearestNeighbour": "kNN",
+                                        "LinearRegression": "LinReg",
+                                        "NaiveBayes": "NB",
+                                        "MultiLayerPerceptron": "MLP",
+                                        "DecisionTree": "DT",
+                                        "RandomForest": "RF",
+                                        "NeuralNetwork": "NN"
+                                    }
+
+        model_list = []
+        model_list.append(self.model)
+        if self.model is not False:
+            ml_single_model = ML(self.data)
+            if self.model in self.model_dict.values():
+                print("Selected single model is " + str(self.model))
+
+                if self.model == "SVM":
+                    ml_single_model.svm(self.data)
+                elif self.model == "kNN":
+                    ml_single_model.knn(self.data)
+                else: 
+                    pass
+
+
     # Call the deep learning class to apply all deep learning algorithms
     # def call_DL(self):
     #     dl = DL(self.data)
+
+
+meta_obj = ML_meta(data, all=False, model="SVM")
+meta_obj.apply_single_model()
     
 
-    
