@@ -37,7 +37,17 @@ class ML_meta:
 
 
     """
-    def __init__(self, data, ffnn=False, all=True, model=False, model_dict={}, target='target', help=False, clean=False):
+    def __init__(self, data, ffnn=False, all=True, model=False, model_dict={
+                                        "SupportVector": "SVM",
+                                        "KNearestNeighbour": "kNN",
+                                        "LinearRegression": "LinReg",
+                                        "NaiveBayes": "NB",
+                                        "MultiLayerPerceptron": "MLP",
+                                        "DecisionTree": "DT",
+                                        "RandomForest": "RF",
+                                        "NeuralNetwork": "NN",
+                                        "EnsembleClassifier": "EC"
+                                    }, target='target', help=False, clean=False):
         self.data = data
         self.ffnn = ffnn
         self.all = all
@@ -91,21 +101,22 @@ class ML_meta:
             ml = self.call_ML()
             #Apply test train split
             X, y = self.split_data(self.data)
-            
 
-            ml.random_forest(X_train, X_test, y_train, y_test)
-            ml.svm(X_train, X_test, y_train, y_test)
-            ml.logistic_regression(X_train, X_test, y_train, y_test)
-            ml.knn(X_train, X_test, y_train, y_test)
-            ml.naive_bayes(X_train, X_test, y_train, y_test)
-            ml.decision_tree(X_train, X_test, y_train, y_test)
-            ml.mlp(X_train, X_test, y_train, y_test)
-            ml.ensemble_classifier(X_train, X_test, y_train, y_test, voting='hard')
+            rf = ml.random_forest(X_train, X_test, y_train, y_test)
+            svm = ml.svm(X_train, X_test, y_train, y_test)
+            knn = ml.knn(X_train, X_test, y_train, y_test)
+            lr = ml.logistic_regression(X_train, X_test, y_train, y_test)
+            nb = ml.naive_bayes(X_train, X_test, y_train, y_test)
+            mlp = ml.mlp(X_train, X_test, y_train, y_test)
+            dt = ml.decision_tree(X_train, X_test, y_train, y_test)
+            nn = ml.nn(X_train, X_test, y_train, y_test)
+            ec = ml.ensemble_classifier(X_train, X_test, y_train, y_test, voting='hard')
+            
             #ml.ffnn(X_train, X_test, y_train, y_test)
             #ml.nn(X_train, X_test, y_train, y_test)
 
             #Compare the results of all models
-            
+
             
 
 

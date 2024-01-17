@@ -266,6 +266,17 @@ class ML(BasePredictor):
         for model in models:
             predictions = model.predict(X_test)
             print(classification_report(y_test, predictions))
+
+    def find_best_model(self, models, X_test, y_test):
+        best_model = None
+        best_accuracy = 0
+        for model in models:
+            predictions = model.predict(X_test)
+            accuracy = accuracy_score(y_test, predictions)
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_model = model
+        return best_model, best_accuracy
     
 
     def fit(self, X, y):
