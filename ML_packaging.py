@@ -2,6 +2,8 @@
 from BaseMLClasses import BasePredictor
 from BaseMLClasses import ML
 from BaseMLClasses import ffnn
+import pickle
+import os
 
 
 # Create meta class to apply all machine learning algorithms
@@ -27,20 +29,43 @@ class ML_meta:
     model - the name of the model to be applied - String
     model_dict - dictionary of all models and their corresponding names
     target - the name of the target feature from input dataset - String
+    help - whether or not to print the help message - True or False
+    clean - whether or not to delete all saved models - True or False
     
     output:
     None
 
 
     """
-    def __init__(self, data, ffnn=False, all=True, model=False, model_dict={}, target='target'):
+    def __init__(self, data, ffnn=False, all=True, model=False, model_dict={}, target='target', help=False, clean=False):
         self.data = data
         self.ffnn = ffnn
         self.all = all
         self.model = model
         self.model_dict = model_dict
         self.target = target
+        self.help = help
+        self.clean = clean
 
+    def misc(self):
+        if self.help is True:
+            print("This is a meta class that handles the application of all ML models. The current models are: Support Vector Machine, \
+                  Naive Bayes, Decision Tree, Logistic Regression, Multi-Layered Perceptron, Random Forest, k-Nearest-Neighbour, Ensemble Classifier (all models combined). \
+                  Includes the call to instantiate the ML class and apply test-train split")
+
+        if self.clean is True:
+            delete_var = input("Are you sure you want to delete all saved models? (y/n)")
+            if delete_var == "y" or delete_var == "Y":
+                print("Deleting saved models")
+                # Delete any saved models inclduing all files that end in .pkl
+                for filename in os.listdir():
+                    if filename.endswith(".pkl"):
+                        os.remove(filename)
+                    else:
+                        continue
+            else:
+                print("Not deleting saved models")
+                pass
 
     # Call the ML class to apply all machine learning algorithms
     def call_ML(self):
@@ -81,6 +106,7 @@ class ML_meta:
 
             #Compare the results of all models
             
+            
 
 
 
@@ -94,7 +120,7 @@ class ML_meta:
             ffnn_predictor.fit(X_train, y_train)
             ffnn_predictor.predict(X_test)
 
-    def apply_single_model(self):
+    def apply_single_model(self, cm=False, save_model=False, save_model_name=False):
         X, y = self.split_data(encode_categorical=False)
         X_train, X_test, y_train, y_test = self.call_ML().split_data(X, y)
         self.model_dict = {
@@ -118,26 +144,80 @@ class ML_meta:
 
                 #try:
                 if self.model == "SVM":
-                    ml_single_model.svm(X_train, X_test, y_train, y_test)
+                    svm = ml_single_model.svm(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        #ml_single_model.svm(X_train, X_test, y_train, y_test)
+                        svm = ml_single_model.svm(X_train, X_test, y_train, y_test)
+                        pickle.dump(svm, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, svm, X_test, y_test)
                 elif self.model == "kNN":
-                    ml_single_model.knn(X_train, X_test, y_train, y_test)
+                    knn = ml_single_model.knn(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        knn = ml_single_model.knn(X_train, X_test, y_train, y_test)
+                        pickle.dump(knn, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, knn, X_test, y_test)
                 elif self.model == "LinReg":
-                    ml_single_model.logistic_regression(X_train, X_test, y_train, y_test)
+                    lr = ml_single_model.logistic_regression(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        lr = ml_single_model.logistic_regression(X_train, X_test, y_train, y_test)
+                        pickle.dump(lr, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, lr, X_test, y_test)
                 elif self.model == "NB":
-                    ml_single_model.naive_bayes(X_train, X_test, y_train, y_test)
+                    nb = ml_single_model.naive_bayes(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        nb = ml_single_model.naive_bayes(X_train, X_test, y_train, y_test)
+                        pickle.dump(nb, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, nb, X_test, y_test)
                 elif self.model == "MLP":
-                    ml_single_model.mlp(X_train, X_test, y_train, y_test)
+                    mlp = ml_single_model.mlp(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        mlp = ml_single_model.mlp(X_train, X_test, y_train, y_test)
+                        pickle.dump(mlp, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, mlp, X_test, y_test)
                 elif self.model == "DT":
-                    ml_single_model.decision_tree(X_train, X_test, y_train, y_test)
+                    dt = ml_single_model.decision_tree(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        dt = ml_single_model.decision_tree(X_train, X_test, y_train, y_test)
+                        pickle.dump(dt, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, dt, X_test, y_test)
                 elif self.model == "RF":
-                    ml_single_model.random_forest(X_train, X_test, y_train, y_test)
+                    rf = ml_single_model.random_forest(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        rf = ml_single_model.random_forest(X_train, X_test, y_train, y_test)
+                        pickle.dump(rf, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, rf, X_test, y_test)
                 elif self.model == "NN":
-                    ml_single_model.mlp(X_train, X_test, y_train, y_test)
+                    nn = ml_single_model.mlp(X_train, X_test, y_train, y_test)
+                    if save_model is True:
+                        nn = ml_single_model.mlp(X_train, X_test, y_train, y_test)
+                        pickle.dump(nn, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, nn, X_test, y_test)
                 elif self.model == "EC":
-                    ml_single_model.ensemble_classifier(X_train, X_test, y_train, y_test, voting='hard')
-                #except:
+                    ec = ml_single_model.ensemble_classifier(X_train, X_test, y_train, y_test, voting='hard')
+                    if save_model is True:
+                        ec = ml_single_model.ensemble_classifier(X_train, X_test, y_train, y_test, voting='hard')
+                        pickle.dump(ec, open(save_model_name, 'wb'))
+                    if cm is True:
+                        ML.plot_confusion_matrix(self, ec, X_test, y_test)
+                
+                
+                
+                
+                
+                #
+                # except:
                 #    print("Error in applying single model")
                 #    pass
+                        
+        self.misc()
 
 
     # Call the deep learning class to apply all deep learning algorithms

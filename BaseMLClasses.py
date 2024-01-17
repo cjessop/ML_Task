@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import pickle
+
 # Import all necessary libraries for machine learning
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -251,6 +253,20 @@ class ML(BasePredictor):
         predictions = model.predict(X_test)
         print(classification_report(y_test, predictions))
         return model
+    
+    def plot_confusion_matrix(self, model, X_test, y_test):
+        predictions = model.predict(X_test)
+        predictions = np.round(predictions)
+        cm = confusion_matrix(y_test, predictions)
+        sns.heatmap(cm, annot=True)
+        plt.show()
+        return cm
+    
+    def compare_classifier_reports(self, models, X_test, y_test):
+        for model in models:
+            predictions = model.predict(X_test)
+            print(classification_report(y_test, predictions))
+    
 
     def fit(self, X, y):
         pass

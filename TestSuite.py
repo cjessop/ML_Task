@@ -20,4 +20,4 @@ print("The target variable is :  ", target_col)
 # Splitting the data into train and test
 ML = ML_meta(df, all=False, model='EC', target='output')
 #ML.apply_all_models(flag=True)
-ML.apply_single_model()
+ML.apply_single_model(save_model=False, save_model_name='svm_model.pkl', cm=True)
