@@ -6,6 +6,8 @@ from BaseMLClasses import ffnn
 import pickle
 import os
 import numpy as np
+import pandas as pd
+import glob
 
 
 # Create meta class to apply all machine learning algorithms
@@ -66,7 +68,8 @@ class ML_meta:
         if self.help is True:
             print("This is a meta class that handles the application of all ML models. The current models are: Support Vector Machine, \
                   Naive Bayes, Decision Tree, Logistic Regression, Multi-Layered Perceptron, Random Forest, k-Nearest-Neighbour, Ensemble Classifier (all models combined). \
-                  Includes the call to instantiate the ML class and apply test-train split")
+                  Includes the call to instantiate the ML class and apply test-train split \n")
+            print(ML_meta.__doc__)
 
         if self.clean is True:
             delete_var = input("Are you sure you want to delete all saved models? (y/n)")
@@ -122,9 +125,7 @@ class ML_meta:
 
             #Compare the results of all models
 
-            
-
-
+        return rf, svm, knn, lr, nb, mlp, dt, nn, ec
 
     def apply_neural_net(self):
         if self.ffnn:
@@ -174,9 +175,9 @@ class ML_meta:
                         param_grid = {'C': [0.1, 1, 10, 100, 1000], 'gamma': [1, 0.1, 0.01, 0.001, 0.0001], 'kernel': ['rbf']}
                         
                     elif self.model == "KNN":
-                        param_grid = { 'n_neighbors' : [5,7,9,11,13,15],
-                                        'weights' : ['uniform','distance'],
-                                        'metric' : ['minkowski','euclidean','manhattan']}
+                        param_grid = { 'n_neighbors' : [5, 7, 9, 11, 13, 15],
+                                        'weights' : ['uniform', 'distance'],
+                                        'metric' : ['minkowski', 'euclidean', 'manhattan']}
 
                     elif self.model == "NB":
                         param_grid = { 'var_smoothin' : np.logspace(0, 9, num=100)}
@@ -212,10 +213,85 @@ class ML_meta:
                         
         self.misc()
 
+class ML_post_process(ML_meta):
+    """
+    A class that handles the post-processing functionality of any saved ML models.
 
-    # Call the deep learning class to apply all deep learning algorithms
-    # def call_DL(self):
-    #     dl = DL(self.data)
+    arguments: 
+    model - Input model saved as .pkl - Binary Machine Learning Model string name
+    data - Input dataframe in the same format as the data used to test to train the model, i.e. the same labelled columns
+    predict - Whether or not to predict on input data - Boolean True or False
+    target - The name of the target feature - String
+    
+    
+    output:
+    None
+
+ 
+    """
+    def __init__(self, data, saved_model=None, predict=False, target=None):
+        self.saved_model = saved_model
+        #self.X_test = X_test
+        self.predict = predict
+        self.data= data
+        self.target = target
+
+    def split_data(self, encode_categorical=True, y='target'):
+        ml = self.call_ML()
+        X, y = ml.split_X_y(self.target)
+        if encode_categorical is True:
+            X, y = ml.encode_categorical(X, y)
+
+        return X, y
+
+    def get_X_test(self):
+        X, y = self.split_data()
+        #X, y = self.split_data(encode_categorical=False)
+        _, X_test, _, _ = self.call_ML().split_data(X, y)
+
+        return X_test
+
+    def load_and_predict(self): 
+
+        if self.saved_model is not None:
+            
+            cwd = os.getcwd()
+            path = str(cwd)
+            pickled_model = pickle.load(open(self.model, 'rb'))
+
+        for filename in os.listdir():
+                try:
+                    if filename.endswith(".pkl"):
+                        file = str(glob.glob('*.pkl')[0])
+                        pickled_model = pickle.load(open(file, 'rb'))
+                    else:
+                        continue
+
+                except:
+                    print("Error loading " + str(self.model) + " machine learning model")
+
+        if self.predict == True:
+            X_test = self.get_X_test()
+            print(X_test)
+            print(pickled_model.predict(X_test))
+
+    def data_info(self):
+        print("The shape of the dataset is " + str(self.data.shape))
+        print(self.data.head())
+        dict = {}
+        for i in list(self.data.columns):
+            dict[i] = self.data[i].value_counts().shape[0]
+
+        print(pd.DataFrame(dict, index=['Unique count']).transpose())
+        print(self.data.describe().transpose())
+
+        #def univariate_analysis():
+
+
+    
+
+        
+
 
 
 if __name__ == "__main__":

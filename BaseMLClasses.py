@@ -284,8 +284,9 @@ class ML(BasePredictor):
     def fit(self, X, y):
         pass
 
-    def predict(self, X):
-        return super().predict(X)
+    def predict(self, model, X):
+        prediction = model.predict(X)
+        return prediction
 
 class svm(ML):
     
