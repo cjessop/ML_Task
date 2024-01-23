@@ -15,15 +15,16 @@ from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, RepeatedStratifiedKFold
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import mean_squared_error
-from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import VotingClassifier, AdaBoostClassifier
 
 # Import cross validation libraries
 from sklearn.model_selection import cross_val_score
@@ -197,6 +198,20 @@ class ML(BasePredictor):
         predictions = nb.predict(X_test)
         print(classification_report(y_test, predictions))
         return nb
+
+    def gbc(self, X_train, X_test, y_train, y_test, random_state=1):
+        gbc = GradientBoostingClassifier(random_state=random_state)
+        gbc.fit(X_train, y_train)
+        predicitions = gbc.predict(X_test)
+        print(classification_report(y_test, predicitions))
+        return gbc
+
+    def abc(self, X_train, X_test, y_train, y_test):
+        abc = AdaBoostClassifier()
+        abc.fit(X_train, y_train)
+        predictions = abc.predict(X_test)
+        print(classification_report(y_test, predictions))
+        return abc
     
     def ec(self, X_train, X_test, y_train, y_test, voting='hard', random_state=1):
         clf1 = LogisticRegression(random_state=random_state)
@@ -214,6 +229,27 @@ class ML(BasePredictor):
         predictions = eclf.predict(X_test)
         print(classification_report(y_test, predictions))
         return eclf
+
+
+    # def neural_net(self, ):
+    #     model = tf.keras.Sequential([
+    #     tf.keras.layers.Dense(96 , activation = 'relu') ,
+    #     tf.keras.layers.Reshape((32, 1, 3)),
+    #     tf.keras.layers.Conv1D(3, kernel_size=4, strides=2, padding="same" ) ,
+    #     tf.keras.layers.BatchNormalization(momentum=0.9),
+    #     tf.keras.layers.Dropout(0.2),
+    #     tf.keras.layers.Dense(10 , activation = 'relu') ,
+    #     tf.keras.layers.Dense(10 , activation = 'relu') , 
+    #     tf.keras.layers.Reshape((320,)),
+    #     tf.keras.layers.Dense(1 , activation = 'sigmoid')
+    #     ])
+
+
+    #     model.compile(loss = tf.keras.losses.binary_crossentropy , 
+    #             optimizer = tf.keras.optimizers.Adam(learning_rate = 0.0001),
+    #             metrics = ['accuracy'])
+
+    #     return model
     
     # Function to apply cross validation
     def cross_validation(self, model, X, y, cv=5):
@@ -279,6 +315,13 @@ class ML(BasePredictor):
                 best_accuracy = accuracy
                 best_model = model
         return best_model, best_accuracy
+
+    def model_score(self, model, X_test, y_test):
+        cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+        scores = cross_val_score(model, X_test, y_test, scoring='accuracy', cv=cv, n_jobs=-1)
+
+        return scores
+
     
 
     def fit(self, X, y):
