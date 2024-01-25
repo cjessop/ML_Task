@@ -23,11 +23,11 @@ target_col = ["output"]
 #print("The target variable is :  ", target_col)
 
 # Splitting the data into train and test
-ML = ML_meta(df, all=True, model='GBC', target='output', cross_val=True, search='random')
+ML = ML_meta(df, all=False, model='EC', target='output', cross_val=True, search=None)
 #ML.apply_all_models(flag=True)
-#ML.apply_single_model(save_model=True, save_model_name='gbc_model.pkl', cm=True)
+ML.apply_single_model(save_model=True, save_model_name='gbc_model.pkl', cm=True)
 
-post_process = ML_post_process(data=df, saved_model=None, predict=False, target='output', con_cols=con_cols, feature='caa')
+#post_process = ML_post_process(data=df, saved_model=None, predict=False, target='output', con_cols=con_cols, feature='caa')
 # post_process.data_info()
 
-post_process.univariate_analysis(output_plot='corr')
+#post_process.univariate_analysis(output_plot='corr')

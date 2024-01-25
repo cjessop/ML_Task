@@ -17,6 +17,7 @@ import seaborn as sns
 warnings.filterwarnings("ignore")
 
 # Create meta class to apply all machine learning algorithms
+# The ML_meta class acts as a coordinator, interacting with other classes for specific model implementations
 class ML_meta:
     """
     A meta class that handles the application of all ML models. 
@@ -96,10 +97,10 @@ class ML_meta:
 
     # Call the ML class to apply all machine learning algorithms
     def call_ML(self):
-        ml = ML(self.data)
+        ml = ML(self.data) # Creates an instance of the ML class
         return ml
 
-
+    #  Splits data into features (X) and target (y), with optional encoding of categorical features
     def split_data(self, encode_categorical=True, y='target'):
         ml = self.call_ML()
         X, y = ml.split_X_y(self.target)
@@ -108,7 +109,15 @@ class ML_meta:
 
         return X, y
 
+    # Applies multiple ML models and compares their scores
     def apply_all_models(self, flag=False):
+        """
+        Applies multiple machine learning models to the dataset and compares their scores.
+
+        Args:
+            flag (bool, optional): If True, applies the models. Defaults to False.
+        """
+
         ml = self.call_ML()
         X, y = self.split_data(encode_categorical=False)
         X_train, X_test, y_train, y_test = self.call_ML().split_data(X, y)
@@ -136,7 +145,7 @@ class ML_meta:
             #ml.ffnn(X_train, X_test, y_train, y_test)
             #ml.nn(X_train, X_test, y_train, y_test)
 
-            #Compare the results of all models
+            # Evaluate the performance of each model
             scores = []
             for model in models:
                 score = ml.model_score(model, X_test, y_test)
@@ -148,6 +157,7 @@ class ML_meta:
 
         return rf, svm, knn, lr, nb, dt, ec, gbc, abc, scores
 
+    # Applies a feedforward neural network model (FFNN)
     def apply_neural_net(self):
         if self.ffnn:
             ffnn_predictor = ffnn(3, activation='sigmoid', batch_size=5)
@@ -158,9 +168,21 @@ class ML_meta:
             ffnn_predictor.fit(X_train, y_train)
             ffnn_predictor.predict(X_test)
 
+    # Applies a specified single model
     def apply_single_model(self, cm=False, save_model=False, save_model_name=False):
+        """
+        Applies a single machine learning model to the dataset.
+
+        Args:
+            cm (bool, optional): If True, plots a confusion matrix. Defaults to False.
+            save_model (bool, optional): If True, saves the trained model. Defaults to False.
+            save_model_name (str, optional): Name to use for the saved model file. Defaults to False.
+        """
+
+        # Split data into features (X) and target (y) without categorical encoding
         X, y = self.split_data(encode_categorical=False)
         X_train, X_test, y_train, y_test = self.call_ML().split_data(X, y)
+        #  Define a dictionary mapping full model names to their abbreviated names
         self.model_dict = {
                                         "SupportVector": "SVM",
                                         "KNearestNeighbour": "kNN",
@@ -195,6 +217,7 @@ class ML_meta:
             if self.model in self.model_dict.keys():
                 print("Selected single model is " + str(self.model_dict[self.model]))
                 model = self.model_dict[self.model](X_train, X_test, y_train, y_test)
+                # Perform hyperparameter tuning if requested
                 if self.search is not None:
                     if self.model == "SVM":
                         param_grid = {  'C': [0.1, 1, 10, 100, 1000], 
@@ -232,6 +255,11 @@ class ML_meta:
                                         'learning_rate': [3, 5, 7, 9, 11], }
                                         #'max_depth': [1, 3, 5, 7, 9, 11] }
 
+                    else:
+                        print("Model not available for random or structured grid search")
+                        pass
+
+
                 if self.search == "random":
                     ml_single_model.randomised_search(model, X_train, y_train, param_grid=param_grid)
                 elif self.search == "grid":
@@ -242,8 +270,10 @@ class ML_meta:
                     ml_single_model.cross_validation(model, X_train, y_train)  
                 # else:
                 #     model = self.model_dict[self.model](X_train, X_test, y_train, y_test)
+                 # Save the trained model if requested
                 if save_model is True:
                     pickle.dump(model, open(save_model_name, 'wb'))
+                # Plot the confusion matrix if requested
                 if cm is True:
                     ML.plot_confusion_matrix(self, model, X_test, y_test)
 

@@ -55,6 +55,22 @@ model_dict = {
 
 
 class BasePredictor(ABC):
+    """
+    Base class for predictive models.
+
+    Defines the core functionalities expected from predictive models, such as fitting and predicting.
+    Also provides utility methods for parameter management and model resetting/loading.
+
+    Attributes:
+        _get_param_names (classmethod): Retrieves the names of parameters for the class's constructor.
+        get_params (method): Returns a dictionary of the class's hyperparameters.
+        reset (method): Creates a new instance of the class with the same parameters as the current instance.
+        load_params (method): Loads new parameters into the class instance.
+
+    Abstract Methods:
+        fit (abstractmethod): Trains the model on given data.
+        predict (abstractmethod): Makes predictions on new data using the trained model.
+    """
 
     @abstractmethod
     def fit(self, X, y):
@@ -66,15 +82,21 @@ class BasePredictor(ABC):
 
 
     # Open source class method to get parameters
-    @classmethod
+    @classmethod # Decorator to make the method accessible without creating a class instance
     def _get_param_names(cls):
+        """
+        Retrieves the names of parameters for the class's constructor.
+
+        Returns:
+            list: A sorted list of parameter names, excluding 'self'.
+        """
         init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
         if init is object.__init__:
-            return []
+            return [] # If using the default object constructor, return an empty list
         
-        init_signature = inspect.signature(init)
+        init_signature = inspect.signature(init) # Get the constructor's signature
         parameters = [p for p in init_signature.parameters.values()
-                      if p.name != 'self' and p.kind != p.VAR_KEYWORD]
+                      if p.name != 'self' and p.kind != p.VAR_KEYWORD] # Exclude 'self' and variable-length arguments
         
         for p in parameters:
             if p.kind == p.VAR_POSITIONAL:
@@ -87,15 +109,24 @@ class BasePredictor(ABC):
     
     #Copied from sklean 
     def get_params(self, deep=True):
-        out = dict()
+        """
+        Returns a dictionary of the class's hyperparameters.
+
+        Args:
+            deep (bool, optional): If True, includes parameters for sub-objects that have a get_params() method. Defaults to True.
+
+        Returns:
+            dict: A dictionary of parameter names mapped to their values.
+        """
+        out = dict() # Initialise the output dictionary
         for key in self._get_param_names():
             value = getattr(self, key)
-            if deep and hasattr(value, 'get_params'):
+            if deep and hasattr(value, 'get_params'): # If deep is True and the value has a get_params() method:
                 deep_items = value.get_params().items()
-                out.update((key + '__' + k, val) for k, val in deep_items)
-            out[key] = value
-            
-        return out
+                out.update((key + '__' + k, val) for k, val in deep_items) 
+            out[key] = value # Add the parameter to the output dictionary
+             
+        return out # Return the dictionary of parameters
 
 
     def reset(self):
@@ -111,13 +142,28 @@ class BasePredictor(ABC):
 
 # Initialise a class that contains all machinery to format data and apply numerous machine learning algorithms to it
 class ML(BasePredictor):
+    """
+    Initializes the ML class with the given data.
+
+    Args:
+        data (pd.DataFrame): The dataset to work with.
+    """
     def __init__(self, data):
         self.data = data
 
     # Split data into X and y
     def split_X_y(self, y):
-        X = self.data.drop(y, axis=1)
-        y = self.data[y]
+        """
+        Splits the data into features (X) and target variable (y).
+
+        Args:
+            y (str): Name of the target variable column.
+
+        Returns:
+            tuple: (X, y) where X is the feature matrix and y is the target vector.
+        """
+        X = self.data.drop(y, axis=1) # Drop the target column to get features
+        y = self.data[y] # Extract the target column
         return X, y
     
     # Function to encode categorical data
@@ -344,14 +390,27 @@ class svm(ML):
 
 class ffnn(BasePredictor):
     def __init__(self, hidden_layers = [], dropout = 0, epochs = 5, activation = [],batch_size = None):
+        """
+        Initialises the ffnn class for creating a feedforward neural-network.
+
+        Args:
+            hidden_layers (list, optional): List of hidden layer sizes. Defaults to [].
+            dropout (float, optional): Dropout rate for regularisation. Defaults to 0.
+            epochs (int, optional): Number of training epochs. Defaults to 5.
+            activation (list, optional): List of activation functions for hidden layers. Defaults to [].
+            batch_size (int, optional): Batch size for training. Defaults to None.
+        """
+        # Store Hyperparameters
         self.hidden_layers = hidden_layers
         self.dropout = dropout
         self.epochs = epochs
         self.activation = activation
         self.batch_size = batch_size
 
+        
+        # Create the Keras Sequential model
         self.model = Sequential()
-        # add the input layer
+        # Add hidden layers
         for i in range(len(self.hidden_layers)):
             if i == 0:
                 self.model.add(Dense(self.hidden_layers[i], activation = self.activation[i], input_dim = self.hidden_layers[i]))
@@ -362,7 +421,7 @@ class ffnn(BasePredictor):
 
         # add the output layer
         self.model.add(Dense(1, activation = 'sigmoid'))
-        # set the loss function and optimiser
+        # set the loss function and optimiser and then finally compile the model
         self.model.compile(loss = 'binary_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
 
     def fit(self, X, y):
