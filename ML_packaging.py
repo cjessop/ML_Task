@@ -1,348 +1,521 @@
-# Import all necessary libraries
-import pandas as pd
+# HORUS - High-Precision Object Classification and Radar Unidentified Signal Separation
+
+from audioop import cross
+from BaseMLClasses import BasePredictor
+from BaseMLClasses import ML
+from BaseMLClasses import ffnn
+import pickle
+import os
 import numpy as np
+import pandas as pd
+#import plotly.express as px
 import matplotlib.pyplot as plt
+import warnings
+import glob
 import seaborn as sns
 
-# Import all necessary libraries for machine learning
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix, classification_report
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import confusion_matrix
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import mean_squared_error
-
-# Import cross validation libraries
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import RandomizedSearchCV
-
-# Import all necessary libraries for deep learning
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.models import load_model
-
-from abc import ABC, abstractmethod
-import inspect
-
-# Import all necessary libraries for natural language processing
-# from nltk.corpus import stopwords
-# from nltk.stem import WordNetLemmatizer
-# from nltk.tokenize import word_tokenize
-from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-
-# Import all necessary libraries for time series analysis
-# from statsmodels.tsa.seasonal import seasonal_decompose
-# from statsmodels.tsa.stattools import adfuller
-# from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-# from pmdarima import auto_arima
-# from statsmodels.tsa.arima_model import ARIMA
-# from statsmodels.tsa.statespace.sarimax import SARIMAX
-
-
-# Import all necessary libraries for image processing
-from PIL import Image
-# from skimage import io
-# from skimage.transform import resize
-# from skimage.color import rgb2gray
-# from skimage.feature import hog
-# from skimage import exposure
-
-
-class BasePredictor(ABC):
-
-    @abstractmethod
-    def fit(self, X, y):
-        pass
-
-    @abstractmethod
-    def predict(self, X):
-        pass
-
-
-    # Open source class method to get parameters
-    @classmethod
-    def _get_param_names(cls):
-        init = getattr(cls.__init__, 'deprecated_original', cls.__init__)
-        if init is object.__init__:
-            return []
-        
-        init_signature = inspect.signature(init)
-        parameters = [p for p in init_signature.parameters.values()
-                      if p.name != 'self' and p.kind != p.VAR_KEYWORD]
-        
-        for p in parameters:
-            if p.kind == p.VAR_POSITIONAL:
-                raise RuntimeError('scikit-learn estimators should always '
-                                   'specify their parameters in the signature'
-                                   ' of their __init__ (no varargs).')
-            
-        # Extract and sort argument names excluding 'self'
-        return sorted([p.name for p in parameters])
-    
-    #Copied from sklean 
-    def get_params(self, deep=True):
-        out = dict()
-        for key in self._get_param_names():
-            value = getattr(self, key)
-            if deep and hasattr(value, 'get_params'):
-                deep_items = value.get_params().items()
-                out.update((key + '__' + k, val) for k, val in deep_items)
-            out[key] = value
-            
-        return out
-
-
-    def reset(self):
-        new = self.__class__(**self.get_params())
-        return new
-
-    def load_params(self, params=None):
-        self = self.__class__(**params)
-        print("params loaded")
-        
-        return self
-
-
-# Initialise a class that contains all machinery to format data and apply numerous machine learning algorithms to it
-class ML(BasePredictor):
-    def __init__(self, data):
-        self.data = data
-
-    # Split data into X and y
-    def split_X_y(self, X, y):
-        X = self.data.drop(y, axis=1)
-        y = self.data[y]
-        return X, y
-    
-    # Function to encode categorical data
-    def encode_categorical(self, X, y):
-        X = pd.get_dummies(X, drop_first=True)
-        y = pd.get_dummies(y, drop_first=True)
-        return X, y
-    
-    # Function to deal with missing data
-    def missing_data(self, X, y, strategy='mean'):
-        from sklearn.impute import SimpleImputer
-        imputer = SimpleImputer(missing_values=np.nan, strategy=strategy)
-        X = imputer.fit_transform(X)
-        y = imputer.fit_transform(y)
-        return X, y
-
-    # Function to extract features from classification data
-    def extract_features(self, X, y, test_size=0.2):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
-        return X_train, X_test, y_train, y_test
-
-    # Function to split data into training and testing sets
-    def split_data(self, X, y, test_size=0.2):
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
-        return X_train, X_test, y_train, y_test
-    
-    # Function to scale data
-    def scale_data(self, X_train, X_test):
-        scaler = StandardScaler()
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
-        return X_train, X_test
-    
-    # Function to apply logistic regression
-    def logistic_regression(self, X_train, X_test, y_train, y_test):
-        logmodel = LogisticRegression()
-        logmodel.fit(X_train, y_train)
-        predictions = logmodel.predict(X_test)
-        print(classification_report(y_test, predictions))
-        return logmodel
-    
-    # Function to apply KNN
-    def knn(self, X_train, X_test, y_train, y_test, n_neighbors=1):
-        knn = KNeighborsClassifier(n_neighbors=n_neighbors)
-        knn.fit(X_train, y_train)
-        pred = knn.predict(X_test)
-        print(classification_report(y_test, pred))
-        return knn
-
-    # Function to apply SVM
-    def svm(self, X_train, X_test, y_train, y_test, kernel='linear'):
-        svc_model = SVC()
-        svc_model.fit(X_train, y_train, kernel=kernel)
-        predictions = svc_model.predict(X_test)
-        print(classification_report(y_test, predictions))
-        return svc_model
-    
-    # Function to apply decision tree
-    def decision_tree(self, X_train, X_test, y_train, y_test, max_depth=8):
-        dtree = DecisionTreeClassifier()
-        dtree.fit(X_train, y_train, max_depth=max_depth)
-        predictions = dtree.predict(X_test)
-        print(classification_report(y_test, predictions))
-        return dtree
-    
-    # Function to apply random forest
-    def random_forest(self, X_train, X_test, y_train, y_test, n_estimators=100, max_depth=8):
-        rfc = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
-        rfc.fit(X_train, y_train)
-        predictions = rfc.predict(X_test)
-        print(classification_report(y_test, predictions))
-        return rfc
-    
-    # Function to apply naive bayes
-    def naive_bayes(self, X_train, X_test, y_train, y_test):
-        nb = MultinomialNB()
-        nb.fit(X_train, y_train)
-        predictions = nb.predict(X_test)
-        print(classification_report(y_test, predictions))
-        return nb
-    
-    # Function to apply cross validation
-    def cross_validation(self, model, X, y, cv=5):
-        scores = cross_val_score(model, X, y, cv=cv)
-        print(scores)
-        print(scores.mean())
-        return scores
-
-    # Function to apply grid search
-    def grid_search(self, model, param_grid, X, y, cv=5):
-        grid = GridSearchCV(model, param_grid, cv=cv)
-        grid.fit(X, y)
-        print(grid.best_params_)
-        print(grid.best_estimator_)
-        return grid
-    
-    # Function to apply randomised search
-    def randomised_search(self, model, param_grid, X, y, cv=5, n_iter=100):
-        random = RandomizedSearchCV(model, param_grid, cv=cv, n_iter=n_iter)
-        random.fit(X, y)
-        print(random.best_params_)
-        print(random.best_estimator_)
-        return random
-    
-    # Function to apply a multi-layer perceptron
-    def mlp(self, X_train, X_test, y_train, y_test, hidden_layers=1, neurons=8, activation='relu', optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'], epochs=25, batch_size=32, validation_split=0.2, verbose=1):
-        model = Sequential()
-        model.add(Dense(neurons, activation=activation))
-        for i in range(hidden_layers):
-            model.add(Dense(neurons, activation=activation))
-        model.add(Dense(1, activation='sigmoid'))
-        model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
-        early_stop = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=25)
-        model.fit(x=X_train, y=y_train, epochs=epochs, batch_size=batch_size, validation_split=validation_split, verbose=verbose, callbacks=[early_stop])
-        loss_df = pd.DataFrame(model.history.history)
-        loss_df.plot()
-        predictions = model.predict_classes(X_test)
-        print(classification_report(y_test, predictions))
-        return model
-    
-class ffnn(BasePredictor):
-    def __init__(self, hidden_layers = [], dropout = 0, epochs = 5, activation = [],batch_size = None):
-        self.hidden_layers = hidden_layers
-        self.dropout = dropout
-        self.epochs = epochs
-        self.activation = activation
-        self.batch_size = batch_size
-
-        self.model = Sequential()
-        # add the input layer
-        for i in range(len(self.hidden_layers)):
-            if i == 0:
-                self.model.add(Dense(self.hidden_layers[i], activation = self.activation[i], input_dim = self.hidden_layers[i]))
-            else:
-                self.model.add(Dense(self.hidden_layers[i], activation = self.activation[i]))
-            if self.dropout > 0:
-                self.model.add(Dropout(self.dropout))
-
-        # add the output layer
-        self.model.add(Dense(1, activation = 'sigmoid'))
-        # set the loss function and optimiser
-        self.model.compile(loss = 'binary_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
-
-    def fit(self, X, y):
-        try: 
-            self.model.fit(X, y, epochs = self.epochs, batch_size = self.batch_size)
-        except:
-            print('Error in fitting the model')
-            pass
-
-    def predict(self, X):
-        try:
-            return self.model.predict(X)
-        except:
-            print('Error in predicting the model')
-            pass
-
-
-# Generate some data to test the class using numpy and pandas
-data = np.random.randint(0, 100, (1000, 50))
-data = pd.DataFrame(data)
-data['target'] = np.random.randint(0, 2, 1000)
-print(data.head())
-
-# Initialise the class
-ml = ML(data)
-
-# Split the data into X and y
-X, y = ml.split_X_y(X='target', y='target')
-print(X.head())
-print(y.head())
-
-# Encode the categorical data
-X, y = ml.encode_categorical(X, y)
-print(X.head())
-print(y.head())
-
-# Deal with missing data
-# X, y = ml.missing_data(X, y)
-# print(X.head())
-# print(y.head())
-
-# Extract features from classification data
-# X_train, X_test, y_train, y_test = ml.extract_features(X, y)
-# print(X_train.shape)
-# print(X_test.shape)
-# print(y_train.shape)
-# print(y_test.shape)
-
-# Split the data into training and testing sets
-X_train, X_test, y_train, y_test = ml.split_data(X, y)
-print(X_train.shape)
-print(X_test.shape)
-print(y_train.shape)
-print(y_test.shape)
-
-# Scale the data
-X_train, X_test = ml.scale_data(X_train, X_test)
-print(X_train.shape)
-print(X_test.shape)
-
-# Apply logistic regression
-logmodel = ml.logistic_regression(X_train, X_test, y_train, y_test)
-print(logmodel)
+warnings.filterwarnings("ignore")
 
 # Create meta class to apply all machine learning algorithms
+# The ML_meta class acts as a coordinator, interacting with other classes for specific model implementations
 class ML_meta:
-    def __init__(self, data):
+    """
+    A meta class that handles the application of all ML models. 
+    The current models are:
+    - Support Vector Machine
+    - Naive Bayes
+    - Decision Tree
+    - Logistic Regression
+    - Multi-Layered Perceptron
+    - Random Forest
+    - k-Nearest-Neighbour
+    - Ensemble Classifier (all models combined)
+    - Gradient Boosted Classifier
+    - Ada Boosted Classifier
+
+    Includes the call to instantiate the ML class and apply test-train split
+
+    arguments: 
+    data - input dataset in disordered format - Column labelled dataset
+    ffnn - whether usage of the feed-forward neural network to make a prediction - True or False
+    all - whether or not to apply all classifier models to the singe dataset - True or False
+    model - the name of the model to be applied - String
+    model_dict - dictionary of all models and their corresponding names
+    target - the name of the target feature from input dataset - String
+    help - whether or not to print the help message - True or False
+    clean - whether or not to delete all saved models - True or False
+    search - perform grid search either randomly or evenly spaced on a grid - String
+    cross_val - perform k-fold cross validation - True or False
+    
+    output:
+    None
+
+
+    """
+    def __init__(self, data, ffnn=False, all=True, model=False, model_dict={
+                                        "SupportVector": "SVM",
+                                        "KNearestNeighbour": "kNN",
+                                        "LinearRegression": "LinReg",
+                                        "NaiveBayes": "NB",
+                                        "MultiLayerPerceptron": "MLP",
+                                        "DecisionTree": "DT",
+                                        "RandomForest": "RF",
+                                        "NeuralNetwork": "NN",
+                                        "EnsembleClassifier": "EC"
+                                    }, target='target', help=False, clean=False, search=None, cross_val=False):
         self.data = data
+        self.ffnn = ffnn
+        self.all = all
+        self.model = model
+        self.model_dict = model_dict
+        self.target = target
+        self.help = help
+        self.clean = clean
+        self.search = search
+        self.cross_val = cross_val
+
+    def misc(self):
+        if self.help is True:
+            print("This is a meta class that handles the application of all ML models. The current models are: Support Vector Machine, \
+                  Naive Bayes, Decision Tree, Logistic Regression, Multi-Layered Perceptron, Random Forest, k-Nearest-Neighbour, Ensemble Classifier (all models combined). \
+                  Includes the call to instantiate the ML class and apply test-train split \n")
+            print(ML_meta.__doc__)
+
+        if self.clean is True:
+            delete_var = input("Are you sure you want to delete all saved models? (y/n)")
+            if delete_var == "y" or delete_var == "Y":
+                print("Deleting saved models")
+                # Delete any saved models inclduing all files that end in .pkl
+                for filename in os.listdir():
+                    if filename.endswith(".pkl"):
+                        os.remove(filename)
+                    else:
+                        continue
+            else:
+                print("Not deleting saved models")
+                pass
 
     # Call the ML class to apply all machine learning algorithms
     def call_ML(self):
-        ml = ML(self.data)
+        ml = ML(self.data) # Creates an instance of the ML class
         return ml
+
+    #  Splits data into features (X) and target (y), with optional encoding of categorical features
+    def split_data(self, encode_categorical=True, y='target'):
+        ml = self.call_ML()
+        X, y = ml.split_X_y(self.target)
+        if encode_categorical is True:
+            X, y = ml.encode_categorical(X, y)
+
+        return X, y
+
+    # Applies multiple ML models and compares their scores
+    def apply_all_models(self, flag=False):
+        """
+        Applies multiple machine learning models to the dataset and compares their scores.
+
+        Args:
+            flag (bool, optional): If True, applies the models. Defaults to False.
+        """
+
+        ml = self.call_ML()
+        X, y = self.split_data(encode_categorical=False)
+        X_train, X_test, y_train, y_test = self.call_ML().split_data(X, y)
+        if flag == False:
+            pass
+        else:
+            ml = self.call_ML()
+            #Apply test train split
+            X, y = self.split_data(self.data)
+
+            rf = ml.rf(X_train, X_test, y_train, y_test)
+            svm = ml.svm(X_train, X_test, y_train, y_test)
+            knn = ml.knn(X_train, X_test, y_train, y_test)
+            lr = ml.lr(X_train, X_test, y_train, y_test)
+            nb = ml.nb(X_train, X_test, y_train, y_test)
+            #mlp = ml.mlp(X_train, X_test, y_train, y_test)
+            dt = ml.dt(X_train, X_test, y_train, y_test)
+            #nn = ml.nn(X_train, X_test, y_train, y_test)
+            ec = ml.ec(X_train, X_test, y_train, y_test, voting='hard')
+            gbc = ml.gbc(X_train, X_test, y_train, y_test)
+            abc = ml.abc(X_train, X_test, y_train, y_test)
+            
+            models = [rf, svm, knn, lr, nb, dt, ec, gbc, abc]
+
+            #ml.ffnn(X_train, X_test, y_train, y_test)
+            #ml.nn(X_train, X_test, y_train, y_test)
+
+            # Evaluate the performance of each model
+            scores = []
+            for model in models:
+                score = ml.model_score(model, X_test, y_test)
+                scores.append(score)
+
+            print(scores)
+
+
+
+        return rf, svm, knn, lr, nb, dt, ec, gbc, abc, scores
+
+    # Applies a feedforward neural network model (FFNN)
+    def apply_neural_net(self):
+        if self.ffnn:
+            ffnn_predictor = ffnn(3, activation='sigmoid', batch_size=5)
+            ml_obj = ML(self.data)
+            x, Y = ml_obj.split_X_y(X='target', y='target')
+            X_train, X_test, y_train, y_test = ml_obj.split_data(x, Y)
+
+            ffnn_predictor.fit(X_train, y_train)
+            ffnn_predictor.predict(X_test)
+
+    # Applies a specified single model
+    def apply_single_model(self, cm=False, save_model=False, save_model_name=False):
+        """
+        Applies a single machine learning model to the dataset.
+
+        Args:
+            cm (bool, optional): If True, plots a confusion matrix. Defaults to False.
+            save_model (bool, optional): If True, saves the trained model. Defaults to False.
+            save_model_name (str, optional): Name to use for the saved model file. Defaults to False.
+        """
+
+        # Split data into features (X) and target (y) without categorical encoding
+        X, y = self.split_data(encode_categorical=False)
+        X_train, X_test, y_train, y_test = self.call_ML().split_data(X, y)
+        #  Define a dictionary mapping full model names to their abbreviated names
+        self.model_dict = {
+                                        "SupportVector": "SVM",
+                                        "KNearestNeighbour": "kNN",
+                                        "LinearRegression": "LinReg",
+                                        "NaiveBayes": "NB",
+                                        "MultiLayerPerceptron": "MLP",
+                                        "DecisionTree": "DT",
+                                        "RandomForest": "RF",
+                                        "NeuralNetwork": "NN",
+                                        "EnsembleClassifier": "EC",
+                                        "GradientBoosted" : "GBC",
+                                        "AdaBooster": "ABC"
+                                    }
+
+        model_list = []
+        model_list.append(self.model)
+        if self.model is not False:
+            ml_single_model = ML(self.data)
+            self.model_dict = {
+                                        "SVM": ml_single_model.svm,
+                                        "KNN": ml_single_model.knn,
+                                        "LR": ml_single_model.lr,
+                                        "NB": ml_single_model.nb,
+                                        "MLP": ml_single_model.mlp,
+                                        "DT": ml_single_model.dt,
+                                        "RF": ml_single_model.rf,
+                                        #"NN": ml_single_model.nn,
+                                        "EC": ml_single_model.ec,
+                                        "GBC": ml_single_model.gbc,
+                                        "ABC": ml_single_model.abc
+                                    }
+            if self.model in self.model_dict.keys():
+                print("Selected single model is " + str(self.model_dict[self.model]))
+                model = self.model_dict[self.model](X_train, X_test, y_train, y_test)
+                # Perform hyperparameter tuning if requested
+                if self.search is not None:
+                    if self.model == "SVM":
+                        param_grid = {  'C': [0.1, 1, 10, 100, 1000], 
+                                        'gamma': [1, 0.1, 0.01, 0.001, 0.0001], 
+                                        'kernel': ['rbf']}
+                        
+                    elif self.model == "KNN":
+                        param_grid = { 'n_neighbors' : [5, 7, 9, 11, 13, 15],
+                                        'weights' : ['uniform', 'distance'],
+                                        'metric' : ['minkowski', 'euclidean', 'manhattan']}
+
+                    elif self.model == "NB":
+                        param_grid = { 'var_smoothin' : np.logspace(0, 9, num=100)}
+
+                    elif self.model == "RF":
+                        param_grid = { 'n_estimators': [25, 50, 100, 150, 200],
+                                        'max_features': ['auto', 'sqrt', 'log2', None],
+                                        'max_depth': [3, 5, 7, 9, 11] }
+
+                    elif self.model == "DT":
+                        param_grid = { 'max_features': ['auto', 'sqrt'],
+                                        'max_depth': 8 }
+
+                    elif self.model == "LR":
+                        param_grid = { 'solver' : ['lbfgs', 'sag', 'saga', 'newton-cg'] }
+
+                    elif self.model == "GBC":
+                        param_grid = { 'n_estimators': [25, 50, 100, 150, 200],
+                                        'max_features': ['auto', 'sqrt', 'log2', None],
+                                        'max_depth': [3, 5, 7, 9, 11] }
+
+                    elif self.model == "ABC":
+                        param_grid = { 'n_estimators': [25, 50, 100, 150, 200, 500],
+                                        'algorithm': ['SAMME', 'SAMME.R', None],
+                                        'learning_rate': [3, 5, 7, 9, 11], }
+                                        #'max_depth': [1, 3, 5, 7, 9, 11] }
+
+                    else:
+                        print("Model not available for random or structured grid search")
+                        pass
+
+
+                if self.search == "random":
+                    ml_single_model.randomised_search(model, X_train, y_train, param_grid=param_grid)
+                elif self.search == "grid":
+                    ml_single_model.grid_search(model, param_grid, X_train, X_test, y_train, y_test, cv=10)
+                    
+
+                elif self.cross_val is not False:
+                    ml_single_model.cross_validation(model, X_train, y_train)  
+                # else:
+                #     model = self.model_dict[self.model](X_train, X_test, y_train, y_test)
+                 # Save the trained model if requested
+                if save_model is True:
+                    pickle.dump(model, open(save_model_name, 'wb'))
+                # Plot the confusion matrix if requested
+                if cm is True:
+                    ML.plot_confusion_matrix(self, model, X_test, y_test)
+
+                
+                        
+        self.misc()
+
+class ML_post_process(ML_meta):
+    """
+    A class that handles the post-processing functionality of any saved ML models.
+
+    arguments: 
+    model - Input model saved as .pkl - Binary Machine Learning Model string name
+    data - Input dataframe in the same format as the data used to test to train the model, i.e. the same labelled columns
+    predict - Whether or not to predict on input data - Boolean True or False
+    target - The name of the target feature - String
+    con_cols - The continuous column names - String or list of strings
+
+    univariate analysis - method that takes a string to perform exploratory data analysis on an input data set. string inputs include:
+        - 'output' plots the target variable output as a bar graph
+        - 'corr' plots the correlation matrices between features
+        - 'pair' plots the pairwise relationships in the input dataset
+        - 'kde' kernel density estimate plot of a feature against the target - input string is the name of the feature
     
-    # Call the deep learning class to apply all deep learning algorithms
-    # def call_DL(self):
-    #     dl = DL(self.data)
+    
+    output:
+    None
+
+ 
+    """
+    def __init__(self, data, saved_model=None, predict=False, target=None, con_cols=None, feature=None):
+        self.saved_model = saved_model
+        #self.X_test = X_test
+        self.predict = predict
+        self.data= data
+        self.target = target
+        self.con_cols = con_cols
+        self.feature = feature
+
+    def split_data(self, encode_categorical=True, y='target'):
+        ml = self.call_ML()
+        X, y = ml.split_X_y(self.target)
+        if encode_categorical is True:
+            X, y = ml.encode_categorical(X, y)
+
+        return X, y
+
+    def get_X_test(self):
+        X, y = self.split_data()
+        #X, y = self.split_data(encode_categorical=False)
+        _, X_test, _, _ = self.call_ML().split_data(X, y)
+
+        return X_test
+
+    def load_and_predict(self): 
+
+        if self.saved_model is not None:
+            
+            cwd = os.getcwd()
+            path = str(cwd)
+            pickled_model = pickle.load(open(self.model, 'rb'))
+
+        for filename in os.listdir():
+                try:
+                    if filename.endswith(".pkl"):
+                        file = str(glob.glob('*.pkl')[0])
+                        pickled_model = pickle.load(open(file, 'rb'))
+                    else:
+                        continue
+
+                except:
+                    print("Error loading " + str(self.model) + " machine learning model")
+
+        if self.predict == True:
+            X_test = self.get_X_test()
+            print(X_test)
+            print(pickled_model.predict(X_test))
+
+    def data_info(self):
+        print("The shape of the dataset is " + str(self.data.shape))
+        print(self.data.head())
+        dict = {}
+        for i in list(self.data.columns):
+            dict[i] = self.data[i].value_counts().shape[0]
+
+        print(pd.DataFrame(dict, index=['Unique count']).transpose())
+        print(self.data.describe().transpose())
+
+    def target_plot(self):
+            fig = plt.figure(figsize=(18,7))
+            gs =fig.add_gridspec(1,2)
+            gs.update(wspace=0.3, hspace=0.3)
+            ax0 = fig.add_subplot(gs[0,0])
+            ax1 = fig.add_subplot(gs[0,1])
+
+            background_color = "#ffe6f3"
+            color_palette = ["#800000","#8000ff","#6aac90","#da8829"]
+            fig.patch.set_facecolor(background_color) 
+            ax0.set_facecolor(background_color) 
+            ax1.set_facecolor(background_color) 
+
+            # Title of the plot
+            ax0.text(0.5,0.5,"Target Count\n",
+                    horizontalalignment = 'center',
+                    verticalalignment = 'center',
+                    fontsize = 20,
+                    fontweight='bold',
+                    fontfamily='serif',
+                    color='#000000')
+
+            ax0.set_xticklabels([])
+            ax0.set_yticklabels([])
+            ax0.tick_params(left=False, bottom=False)
+
+            # Target Count
+            ax1.text(0.35,177,"Output",fontsize=14, fontweight='bold', fontfamily='serif', color="#000000")
+            ax1.grid(color='#000000', linestyle=':', axis='y', zorder=0,  dashes=(1,5))
+            sns.countplot(ax=ax1, data = self.data, x = self.target, palette=["#8000ff","#da8829"])
+            ax1.set_xlabel("")
+            ax1.set_ylabel("")
+            #ax1.set_xticklabels([" "])
+
+            ax0.spines["top"].set_visible(False)
+            ax0.spines["left"].set_visible(False)
+            ax0.spines["bottom"].set_visible(False)
+            ax0.spines["right"].set_visible(False)
+            ax1.spines["top"].set_visible(False)
+            ax1.spines["left"].set_visible(False)
+            ax1.spines["right"].set_visible(False)
+
+            plt.show()
+
+    def corr_plot(self):
+        df_corr = self.data[self.con_cols].corr().transpose()
+        df_corr
+        fig = plt.figure(figsize=(10,10))
+        gs = fig.add_gridspec(1,1)
+        gs.update(wspace=0.3, hspace=0.15)
+        ax0 = fig.add_subplot(gs[0,0])
+
+        color_palette = ["#5833ff","#da8829"]
+        mask = np.triu(np.ones_like(df_corr))
+        ax0.text(1.5,-0.1,"Correlation Matrix",fontsize=22, fontweight='bold', fontfamily='serif', color="#000000")
+        df_corr = df_corr[self.con_cols].corr().transpose()
+        sns.heatmap(df_corr, mask=mask, fmt=".1f", annot=True, cmap='YlGnBu')
+
+        plt.show()
+
+        fig = plt.figure(figsize=(12,12))
+        corr_mat = self.data.corr().stack().reset_index(name="correlation")
+        g = sns.relplot(
+            data=corr_mat,
+            x="level_0", y="level_1", hue="correlation", size="correlation",
+            palette="YlGnBu", hue_norm=(-1, 1), edgecolor=".7",
+            height=10, sizes=(50, 250), size_norm=(-.2, .8),
+        )
+        g.set(xlabel="features on X", ylabel="featurs on Y", aspect="equal")
+        g.fig.suptitle('Scatterplot heatmap',fontsize=22, fontweight='bold', fontfamily='serif', color="#000000")
+        g.despine(left=True, bottom=True)
+        g.ax.margins(.02)
+        for label in g.ax.get_xticklabels():
+            label.set_rotation(90)
+        for artist in g.legend.legendHandles:
+            artist.set_edgecolor(".7")
+        plt.show()
+
+    # def corr_plot2(self):
+    #     px.imshow(self.data.corr())
+
+    def linearality(self):
+        plt.figure(figsize=(18,18))
+        for i, col in enumerate(self.data.columns, 1):
+            plt.subplot(4, 3, i)
+            sns.histplot(self.data[col], kde=True)
+            plt.tight_layout()
+            plt.plot()
+        plt.show()
+
+
+    def pairplot(self):
+        sns.pairplot(self.data, hue=self.target, palette=["#8000ff","#da8829"])
+        plt.show()
+        sns.pairplot(self.data, hue=self.target, kind='kde')
+        plt.show()
+
+    def kde_plot(self):
+        fig = plt.figure(figsize=(18,18))
+        gs = fig.add_gridspec(1,2)
+        gs.update(wspace=0.5, hspace=0.5)
+        ax0 = fig.add_subplot(gs[0, 0])
+        ax1 = fig.add_subplot(gs[1])
+        bg = "#ffe6e6"
+        ax0.set_facecolor(bg) 
+        ax1.set_facecolor(bg) 
+
+        fig.patch.set_facecolor(bg)
+        #sns.kdeplot(ax=ax0, data=self.data, x=self.feature, hue=self.target, zorder=0, dashes=(1,5))
+        ax0.text(0.5, 0.5, "Distribution of " + str(self.feature) + " to\n " + str(self.target) + "\n",
+            horizontalalignment = 'center',
+            verticalalignment = 'center',
+            fontsize = 18,
+            fontweight='bold',
+            fontfamily='serif',
+            color='#000000')
+
+        ax1.text(1, 0.25, "feature",
+            horizontalalignment = 'center',
+            verticalalignment = 'center',
+            fontsize = 14
+            )
+        ax0.spines["bottom"].set_visible(False)
+        ax0.set_xticklabels([])
+        ax0.set_yticklabels([])
+        ax0.tick_params(left=False, bottom=False)
+
+        ax1.grid(color='#000000', linestyle=':', axis='y', zorder=0,  dashes=(1,5))
+        sns.kdeplot(ax=ax1, data=self.data, x=self.feature, hue=self.target, alpha=0.7, linewidth=1, fill=True, palette=["#8000ff","#da8829"])
+        ax1.set_xlabel("")
+        ax1.set_ylabel("")
+
+        for i in ["top","left","right"]:
+            ax0.spines[i].set_visible(False)
+            ax1.spines[i].set_visible(False)
+        #sns.kdeplot(data=self.data, x=self.feature, hue=self.target, dashes=(1,5), alpha=0.7, linewidth=0, palette=["#8000ff","#da8829"])
+        plt.show()
+
+    def univariate_analysis(self, output_plot=None):
+
+        if output_plot == 'output':
+            self.target_plot()
+        elif output_plot == 'corr':
+            self.corr_plot()
+        elif output_plot == 'pair':
+            self.pairplot()
+        elif output_plot == 'kde':
+            self.kde_plot()
+        elif output_plot == 'linearality':
+            self.linearality()
+
+if __name__ == "__main__":
+        # Initialise the meta class
+    meta_obj = ML_meta(data, all=False, model="MLP")
+    meta_obj.apply_single_model()
     
 
-    
