@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=for-the-badge&logo=Keras&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
 
 # HORUS v0.1
-## High-Precision Object Classification and [----] Unidentified Signal Separation
+## High-Precision [----] Classification and [----] Unidentified [----] Separation
 
 ### 1. ML_meta Class:
 
