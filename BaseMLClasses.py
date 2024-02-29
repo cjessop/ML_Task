@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import config
 
 import pickle
 
@@ -33,6 +34,8 @@ from sklearn.model_selection import RandomizedSearchCV
 
 # Import all necessary libraries for deep learning
 # import tensorflow as tf
+# from tensorflow.keras import layers
+# from tensorflow.keras.utils import get_cust_objects
 # from tensorflow.keras.models import Sequential
 # from tensorflow.keras.layers import Dense, Dropout
 # from tensorflow.keras.callbacks import EarlyStopping
@@ -338,6 +341,95 @@ class ML(BasePredictor):
         print(classification_report(y_test, predictions))
         return model
     
+    def fcn(self, X_test, y_test, input_shape, padding, pad_out, N_VARS = 1):
+        input_shape = layers.Input(shape = input_shape, name = 'input_data')
+        conv_1 = layers.conv2D(64, (5, 5), padding=padding, data_format='channels_first')(input_data)
+        batch_1 = layers.BatchNormalization(axis=1)(conv_1)
+        activation_1 = layers.Activation('relu')(batch_1)
+        conv_2 = layers.Conv2D(128, (3,3), padding=padding, data_format='channels_first')(activation_1)
+        batch_2 = layers.BatchNormalization(axis=1)(conv_2)
+        activation_2 = layers.Activation('relu')(batch_2)
+        conv_3 = layers.Conv2D(256, (3,3), padding=padding, data_format='channels_first')(activation_2)
+        batch_3 = layers.BatchNormalization(axis=1)(conv_3)
+        activation_3 = layers.Activation('relu')(batch_3)
+        conv_4 = layers.Conv2D(256, (3,3), padding=padding, data_format='channels_first')(activation_3)
+        batch_4 = layers.BatchNormalization(axis=1)(conv_4)
+        activation_4 = layers.Activation('relu')(batch_4)
+        conv_5 = layers.Conv2D(128, (3,3), padding=padding, data_format='channels_first')(activation_4)
+        batch_5 = layers.BatchNormalization(axis=1)(conv_5)
+        activation_5 = layers.Activation('relu')(batch_5)
+
+        conv_branch1 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+        if (pred_fluct == True):
+            activation_branch1 = layers.Activation('thres_relu')(conv_branch1)
+            output_branch1 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                           (int(pad_out/2), int(pad_out/2))),
+                                                           data_format='channels_first', name='output_branch1')(activation_branch1)
+        else:
+            activation_branch1 = layers.Activation('relu')(conv_branch1)
+            output_branch1 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                           (int(pad_out/2), int(pad_out/2))),
+                                                           data_format='channels_first', name='output_branch1')(activation_branch1)
+            
+        losses = {'output_branch1': 'mse'}
+
+        if (N_VARS == 2):
+            conv_branch2 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+            if (pred_fluct == True):
+                activation_branch2 = layers.Activation('thres_relu')(conv_branch2)
+                output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                            (int(pad_out/2), int(pad_out/2))),
+                                                            data_format='channels_first', name='output_branch2')(activation_branch2)
+            else:
+                activation_branch2 = layers.Activation('relu')(conv_branch2)
+                output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                            (int(pad_out/2), int(pad_out/2))),
+                                                            data_format='channels_first', name='output_branch2')(activation_branch2)
+                
+            losses['output_branch2'] = 'mse'
+
+        elif (N_VARS == 3):
+            conv_branch2 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+            if (pred_fluct == True):
+                activation_branch2 = layers.Activation('thres_relu')(conv_branch2)
+                output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                            (int(pad_out/2), int(pad_out/2))),
+                                                            data_format='channels_first', name='output_branch2')(activation_branch2)
+            else:
+                activation_branch2 = layers.Activation('relu')(conv_branch2)
+                output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                            (int(pad_out/2), int(pad_out/2))),
+                                                            data_format='channels_first', name='output_branch2')(activation_branch2)
+                
+            losses['output_branch2'] = 'mse'
+
+            conv_branch3 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+            if (pred_fluct == True):
+                activation_branch3 = layers.Activation('thres_relu')(conv_branch3)
+                output_branch3 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                            (int(pad_out/2), int(pad_out/2))),
+                                                            data_format='channels_first', name='output_branch3')(activation_branch3)
+            else:
+                activation_branch3 = layers.Activation('relu')(conv_branch3)
+                output_branch3 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
+                                                            (int(pad_out/2), int(pad_out/2))),
+                                                            data_format='channels_first', name='output_branch3')(activation_branch3)
+
+            outputs_model = [output_branch1, output_branch2, output_branch3]
+
+            losses['output_branch3'] = 'mse'
+
+        else:
+            outputs_model = output_branch1
+
+        CNN_model = tf.keras.models.Model(inputs=inputs, threshold=RELU_THRESHOLD)
+        return CNN_model
+
+
+
+    
+
+    
     def plot_confusion_matrix(self, model, X_test, y_test):
         predictions = model.predict(X_test)
         predictions = np.round(predictions)
@@ -437,6 +529,10 @@ class ffnn(BasePredictor):
         except:
             print('Error in predicting the model')
             pass
+
+
+
+
 
 
 # Generate some data to test the class using numpy and pandas

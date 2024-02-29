@@ -4,6 +4,7 @@ from audioop import cross
 from BaseMLClasses import BasePredictor
 from BaseMLClasses import ML
 from BaseMLClasses import ffnn
+from Config import config
 import pickle
 import os
 import numpy as np
@@ -46,6 +47,7 @@ class ML_meta:
     clean - whether or not to delete all saved models - True or False
     search - perform grid search either randomly or evenly spaced on a grid - String
     cross_val - perform k-fold cross validation - True or False
+    CNN - Apply a convolutional Neural Network - True or False
     
     output:
     None
@@ -62,7 +64,7 @@ class ML_meta:
                                         "RandomForest": "RF",
                                         "NeuralNetwork": "NN",
                                         "EnsembleClassifier": "EC"
-                                    }, target='target', help=False, clean=False, search=None, cross_val=False):
+                                    }, target='target', help=False, clean=False, search=None, cross_val=False, CNN=None):
         self.data = data
         self.ffnn = ffnn
         self.all = all
@@ -73,6 +75,7 @@ class ML_meta:
         self.clean = clean
         self.search = search
         self.cross_val = cross_val
+        self.CNN = CNN
 
     def misc(self):
         if self.help is True:
@@ -167,6 +170,63 @@ class ML_meta:
 
             ffnn_predictor.fit(X_train, y_train)
             ffnn_predictor.predict(X_test)
+
+    def apply_CNN(self):
+        if self.CNN:
+            config_ = config()
+            os.environ["CUDA_VISIBLE_DEVICES"]=str(config_.WHICH_GPU_TRAIN)
+
+            config_.DATA_AUG = False
+            config_.TRANSFER_LEARNING = False
+
+            physical_GPUs = tf.config.list_physical_devices('GPU')
+            avail_GPUs = len(physical_GPUs)
+
+            print("TensorFlow ", tf.__version__, " GPU: ", avail_GPUs)
+            print("Keras: ", tf.keras.__version__)
+
+            if physical_GPUs:
+                try:
+                    for gpu in physical_GPUs:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                except RuntimeError:
+                    print(RuntimeError)
+
+            onGPU = config_.ON_GPU
+            num_GPU = config_.N_GPU
+
+            if (on_GPU == True and num_GPU > 1):
+                distributed_training = on_GPU
+            else:
+                print("Need at least one GPU")
+                break
+
+            dataset_train, dataset_test, n_train_sample, n_validation_sample, model_config = get_dataset(prb_def, config_, train=True, distributed_training=distributed_training)
+
+            CNN_model, callbacks = get_model(model_config)
+
+            train_hist = CNN_model.fit(dataset_train,
+                                       epochs=config_.N_EPOCH,
+                                       steps_per_epoch=int(np.ceil(n_train_sample/model_config['batch_size'])),
+                                       validation_data=n_validation_sample,
+                                       validation_steps=int(np.ceil(n_validation_sample/model_config['batch_size'])),
+                                       verbose=2,
+                                       callbacks=callbacks)
+            
+            save_path='./saved_CNN_models'
+            if os.path.exists(save_path) == False:
+                os.mkdir(save_path)
+
+            tf.keras.save_model(CNN_model, save_path+model_config['name'],
+                                overwrite=True, include_optimizer=True,
+                                save_format='h5')
+            
+            train_loss = train_history.history['loss']
+            val_loss = train_history.history['val_loss']
+            tTrain = callbacks[-1].times
+
+            np.savez(save_path+model_config['name']+'_log', tLoss=train_loss, vLoss=val_loss, tTrain=tTrain)
+
 
     # Applies a specified single model
     def apply_single_model(self, cm=False, save_model=False, save_model_name=False):
