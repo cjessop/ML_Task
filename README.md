@@ -1,4 +1,4 @@
-![example workflow](https://img.shields.io/badge/HEIMDALL-yellow) ![example workflow](https://img.shields.io/badge/build-passing-green) ![example_workflow](https://img.shields.io/badge/version-0.1-blue)
+![example workflow](https://img.shields.io/badge/HEIMDALL-yellow) ![example workflow](https://img.shields.io/badge/build-passing-green) ![example_workflow](https://img.shields.io/badge/version-0.2-blue)
  ![example workflow](https://img.shields.io/badge/copyright-all%20rights%20reserved-darkred) 
  
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=for-the-badge&logo=Keras&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
