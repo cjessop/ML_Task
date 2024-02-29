@@ -40,6 +40,10 @@ Implements a feedforward neural network.
 
 Provides a base class for prediction-related functionality.
 
+### 5. CNN Class:
+
+Implements a convoluted neural network architecture.
+
 --------------------------------------------------------------------------------------------------
 ## Usage
 
