@@ -154,6 +154,7 @@ class ML(BasePredictor):
     def __init__(self, data):
         self.data = data
 
+
     # Split data into X and y
     def split_X_y(self, y):
         """
@@ -341,9 +342,52 @@ class ML(BasePredictor):
         print(classification_report(y_test, predictions))
         return model
     
+    def plot_confusion_matrix(self, model, X_test, y_test):
+        predictions = model.predict(X_test)
+        predictions = np.round(predictions)
+        cm = confusion_matrix(y_test, predictions)
+        sns.heatmap(cm, annot=True)
+        plt.show()
+        return cm
+    
+    def compare_classifier_reports(self, models, X_test, y_test):
+        for model in models:
+            predictions = model.predict(X_test)
+            print(classification_report(y_test, predictions))
+
+    def find_best_model(self, models, X_test, y_test):
+        best_model = None
+        best_accuracy = 0
+        for model in models:
+            predictions = model.predict(X_test)
+            accuracy = accuracy_score(y_test, predictions)
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
+                best_model = model
+        return best_model, best_accuracy
+
+    def model_score(self, model, X_test, y_test):
+        cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+        scores = cross_val_score(model, X_test, y_test, scoring='accuracy', cv=cv, n_jobs=-1)
+
+        return scores
+
+    
+
+    def fit(self, X, y):
+        pass
+
+    def predict(self, model, X):
+        prediction = model.predict(X)
+        return prediction
+
+class CNN():
+    def __init__(self, input_data):
+        self.input_data=input_data
+
     def fcn(self, X_test, y_test, input_shape, padding, pad_out, N_VARS = 1):
         input_shape = layers.Input(shape = input_shape, name = 'input_data')
-        conv_1 = layers.conv2D(64, (5, 5), padding=padding, data_format='channels_first')(input_data)
+        conv_1 = layers.conv2D(64, (5, 5), padding=padding, data_format='channels_first')(self.input_data)
         batch_1 = layers.BatchNormalization(axis=1)(conv_1)
         activation_1 = layers.Activation('relu')(batch_1)
         conv_2 = layers.Conv2D(128, (3,3), padding=padding, data_format='channels_first')(activation_1)
@@ -425,50 +469,6 @@ class ML(BasePredictor):
         CNN_model = tf.keras.models.Model(inputs=inputs, threshold=RELU_THRESHOLD)
         return CNN_model
 
-
-
-    
-
-    
-    def plot_confusion_matrix(self, model, X_test, y_test):
-        predictions = model.predict(X_test)
-        predictions = np.round(predictions)
-        cm = confusion_matrix(y_test, predictions)
-        sns.heatmap(cm, annot=True)
-        plt.show()
-        return cm
-    
-    def compare_classifier_reports(self, models, X_test, y_test):
-        for model in models:
-            predictions = model.predict(X_test)
-            print(classification_report(y_test, predictions))
-
-    def find_best_model(self, models, X_test, y_test):
-        best_model = None
-        best_accuracy = 0
-        for model in models:
-            predictions = model.predict(X_test)
-            accuracy = accuracy_score(y_test, predictions)
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
-                best_model = model
-        return best_model, best_accuracy
-
-    def model_score(self, model, X_test, y_test):
-        cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-        scores = cross_val_score(model, X_test, y_test, scoring='accuracy', cv=cv, n_jobs=-1)
-
-        return scores
-
-    
-
-    def fit(self, X, y):
-        pass
-
-    def predict(self, model, X):
-        prediction = model.predict(X)
-        return prediction
-
 class svm(ML):
     
 
@@ -531,8 +531,7 @@ class ffnn(BasePredictor):
             pass
 
 
-
-
+    
 
 
 # Generate some data to test the class using numpy and pandas

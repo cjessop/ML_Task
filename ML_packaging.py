@@ -3,7 +3,7 @@
 from audioop import cross
 from BaseMLClasses import BasePredictor
 from BaseMLClasses import ML
-from BaseMLClasses import ffnn
+from BaseMLClasses import ffnn, CNN
 from Config import config
 import pickle
 import os
@@ -136,9 +136,7 @@ class ML_meta:
             knn = ml.knn(X_train, X_test, y_train, y_test)
             lr = ml.lr(X_train, X_test, y_train, y_test)
             nb = ml.nb(X_train, X_test, y_train, y_test)
-            #mlp = ml.mlp(X_train, X_test, y_train, y_test)
             dt = ml.dt(X_train, X_test, y_train, y_test)
-            #nn = ml.nn(X_train, X_test, y_train, y_test)
             ec = ml.ec(X_train, X_test, y_train, y_test, voting='hard')
             gbc = ml.gbc(X_train, X_test, y_train, y_test)
             abc = ml.abc(X_train, X_test, y_train, y_test)
@@ -171,7 +169,12 @@ class ML_meta:
             ffnn_predictor.fit(X_train, y_train)
             ffnn_predictor.predict(X_test)
 
-    def apply_CNN(self):
+    def apply_CNN(self, CNN_flag=False):
+        """
+        Applies the Convoluted Neural Network architecture defined in BaseMLClasses. 
+        Args: 
+            CNN_flag - (bool, optional): If True, applies CNN. Defaults to False.
+        """
         if self.CNN:
             config_ = config()
             os.environ["CUDA_VISIBLE_DEVICES"]=str(config_.WHICH_GPU_TRAIN)
@@ -201,9 +204,16 @@ class ML_meta:
                 print("Need at least one GPU")
                 break
 
+
+            #Actually define the function get_dataset, or just use the regular keras model = tf.keras.Model() method
             dataset_train, dataset_test, n_train_sample, n_validation_sample, model_config = get_dataset(prb_def, config_, train=True, distributed_training=distributed_training)
 
+            
+            #Again, actially define the get_model function, or just call the method and load the function in
             CNN_model, callbacks = get_model(model_config)
+
+            CNN_model = 
+
 
             train_hist = CNN_model.fit(dataset_train,
                                        epochs=config_.N_EPOCH,
