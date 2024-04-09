@@ -1,0 +1,11 @@
+names:
+- object
+nc: 1
+roboflow:
+  license: CC BY 4.0
+  project: HDALL
+  version: 1
+  workspace: cjessop
+test: ../test/images
+train: images
+val: images
