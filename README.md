@@ -3,7 +3,7 @@
  
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=for-the-badge&logo=Keras&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
 
-# HEIMDALL v0.2 - Updated 29/02/24
+# HEIMDALL v0.3 - Updated 09/04/24
 ## High-Resolution [----] Identification and [----] Discriminator [----]
 
 ### 1. ML_meta Class:
@@ -43,6 +43,10 @@ Provides a base class for prediction-related functionality.
 ### 5. CNN Class:
 
 Implements a convoluted neural network architecture.
+
+### 6. YOLOv8 Object identifier
+
+Provides the functionality for a user-trained YOLO identifier to predict on either pre-recorded or live video stream
 
 --------------------------------------------------------------------------------------------------
 ## Usage
