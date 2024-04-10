@@ -3,7 +3,7 @@
  
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=for-the-badge&logo=Keras&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
 
-# HEIMDALL v0.3 - Updated 09/04/24
+# HEIMDALL v0.3 - Updated 10/04/24
 ## High-Resolution [----] Identification and [----] Discriminator [----]
 
 ### 1. ML_meta Class:
