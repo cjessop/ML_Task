@@ -1,4 +1,4 @@
-# HORUS - High-Precision Object Classification and Radar Unidentified Signal Separation
+# HEIMDALL
 
 from audioop import cross
 from BaseMLClasses import BasePredictor
@@ -6,10 +6,12 @@ from BaseMLClasses import ML
 from BaseMLClasses import ffnn, CNN
 from Config import config
 import pickle
+import sys
 import os
 import numpy as np
 import pandas as pd
 #import plotly.express as px
+from yolo_class import Utils, YOLO_main, Object_tracker, YOLO_detector
 import matplotlib.pyplot as plt
 import warnings
 import glob
@@ -22,7 +24,7 @@ warnings.filterwarnings("ignore")
 class ML_meta:
     """
     A meta class that handles the application of all ML models. 
-    The current models are:
+    The current classical models are:
     - Support Vector Machine
     - Naive Bayes
     - Decision Tree
@@ -33,6 +35,10 @@ class ML_meta:
     - Ensemble Classifier (all models combined)
     - Gradient Boosted Classifier
     - Ada Boosted Classifier
+
+    The current Deep Learning methods are:
+    - CNN
+    - YOLOv8
 
     Includes the call to instantiate the ML class and apply test-train split
 
@@ -45,9 +51,17 @@ class ML_meta:
     target - the name of the target feature from input dataset - String
     help - whether or not to print the help message - True or False
     clean - whether or not to delete all saved models - True or False
-    search - perform grid search either randomly or evenly spaced on a grid - String
+    search - perform grid search either randomly or evenly spaced on a grid - String of 'random' or 'grid'
     cross_val - perform k-fold cross validation - True or False
     CNN - Apply a convolutional Neural Network - True or False
+    on_GPU - Run the CNN on a GPU - True or False
+    YOLO - Instantiate an instance of the YOLO class for training or predicition - True or False
+    data_path - The path to the dataset - default None
+    image_path - The path to the image library - default None
+    YOLO_model - The path or name of the trained YOLO algoritm - default None
+    video_path - The path to the video on which you would like to predict on - default None
+    video_capture - Use a connected image or camera sensor for live input to predict on - True or False
+    YOLO_train - Flag to train a new YOLO model on, requires data_path and image_path to be not None - True or False
     
     output:
     None
@@ -64,18 +78,33 @@ class ML_meta:
                                         "RandomForest": "RF",
                                         "NeuralNetwork": "NN",
                                         "EnsembleClassifier": "EC"
-                                    }, target='target', help=False, clean=False, search=None, cross_val=False, CNN=None):
-        self.data = data
-        self.ffnn = ffnn
-        self.all = all
-        self.model = model
-        self.model_dict = model_dict
-        self.target = target
-        self.help = help
-        self.clean = clean
-        self.search = search
-        self.cross_val = cross_val
-        self.CNN = CNN
+                                    }, target='target', help=False, clean=False, 
+                                    search=None, cross_val=False, CNN=None,
+                                    on_GPU=False, YOLO=False, data_path=None,
+                                    image_path=None, image_number=None, YOLO_model=None,
+                                    video_path=None, video_capture=False, YOLO_train=False,
+                                    YOLO_save=False):
+        self.data          = data
+        self.ffnn          = ffnn
+        self.all           = all
+        self.model         = model
+        self.model_dict    = model_dict
+        self.target        = target
+        self.help          = help
+        self.clean         = clean
+        self.search        = search
+        self.cross_val     = cross_val
+        self.CNN           = CNN
+        self.on_GPU        = on_GPU
+        self.YOLO          = YOLO
+        self.data_path     = data_path
+        self.image_path    = image_path
+        self.image_number  = image_number
+        self.YOLO_model    = YOLO_model
+        self.video_path    = video_path
+        self.video_capture = video_capture
+        self.YOLO_train    = YOLO_train
+        self.YOLO_save     = YOLO_save
 
     def misc(self):
         if self.help is True:
@@ -198,11 +227,11 @@ class ML_meta:
             onGPU = config_.ON_GPU
             num_GPU = config_.N_GPU
 
-            if (on_GPU == True and num_GPU > 1):
-                distributed_training = on_GPU
+            if (self.on_GPU == True and num_GPU > 1):
+                distributed_training = self.on_GPU
             else:
                 print("Need at least one GPU")
-                break
+                exit(0)
 
 
             #Actually define the function get_dataset, or just use the regular keras model = tf.keras.Model() method
@@ -212,7 +241,7 @@ class ML_meta:
             #Again, actially define the get_model function, or just call the method and load the function in
             CNN_model, callbacks = get_model(model_config)
 
-            CNN_model = 
+            #CNN_model = 
 
 
             train_hist = CNN_model.fit(dataset_train,
@@ -290,39 +319,51 @@ class ML_meta:
                 # Perform hyperparameter tuning if requested
                 if self.search is not None:
                     if self.model == "SVM":
-                        param_grid = {  'C': [0.1, 1, 10, 100, 1000], 
+                        param_grid = {  
+                                        'C': [0.1, 1, 10, 100, 1000], 
                                         'gamma': [1, 0.1, 0.01, 0.001, 0.0001], 
-                                        'kernel': ['rbf']}
+                                        'kernel': ['rbf']
+                                        }
                         
                     elif self.model == "KNN":
-                        param_grid = { 'n_neighbors' : [5, 7, 9, 11, 13, 15],
+                        param_grid = { 
+                                        'n_neighbors' : [5, 7, 9, 11, 13, 15],
                                         'weights' : ['uniform', 'distance'],
-                                        'metric' : ['minkowski', 'euclidean', 'manhattan']}
+                                        'metric' : ['minkowski', 'euclidean', 'manhattan']
+                                        }
 
                     elif self.model == "NB":
                         param_grid = { 'var_smoothin' : np.logspace(0, 9, num=100)}
 
                     elif self.model == "RF":
-                        param_grid = { 'n_estimators': [25, 50, 100, 150, 200],
+                        param_grid = { 
+                                        'n_estimators': [25, 50, 100, 150, 200],
                                         'max_features': ['auto', 'sqrt', 'log2', None],
-                                        'max_depth': [3, 5, 7, 9, 11] }
+                                        'max_depth': [3, 5, 7, 9, 11] 
+                                        }
 
                     elif self.model == "DT":
-                        param_grid = { 'max_features': ['auto', 'sqrt'],
-                                        'max_depth': 8 }
+                        param_grid = { 
+                                        'max_features': ['auto', 'sqrt'],
+                                        'max_depth': 8 
+                                        }
 
                     elif self.model == "LR":
                         param_grid = { 'solver' : ['lbfgs', 'sag', 'saga', 'newton-cg'] }
 
                     elif self.model == "GBC":
-                        param_grid = { 'n_estimators': [25, 50, 100, 150, 200],
+                        param_grid = { 
+                                        'n_estimators': [25, 50, 100, 150, 200],
                                         'max_features': ['auto', 'sqrt', 'log2', None],
-                                        'max_depth': [3, 5, 7, 9, 11] }
+                                        'max_depth': [3, 5, 7, 9, 11] 
+                                        }
 
                     elif self.model == "ABC":
-                        param_grid = { 'n_estimators': [25, 50, 100, 150, 200, 500],
+                        param_grid = { 
+                                        'n_estimators': [25, 50, 100, 150, 200, 500],
                                         'algorithm': ['SAMME', 'SAMME.R', None],
-                                        'learning_rate': [3, 5, 7, 9, 11], }
+                                        'learning_rate': [3, 5, 7, 9, 11], 
+                                        }
                                         #'max_depth': [1, 3, 5, 7, 9, 11] }
 
                     else:
@@ -350,6 +391,43 @@ class ML_meta:
                 
                         
         self.misc()
+
+    def apply_YOLO(self):
+        """
+        Applies or trains a YOLO model on an input video or live capture.
+
+        Args:
+        None
+
+        output:
+        None by default
+        If video_capture is True, a window showing the current capture of the connected camera system is displayed with bounding boxes
+        """
+        if self.YOLO:
+            detector = YOLO_main(self.data_path, self.image_path, self.image_number, self.YOLO_model, self.video_path, self.video_capture)
+
+            if self.YOLO_train:
+                try:
+                    detector.train()
+                except ValueError:
+                    print("Invalid arguments to train method")
+            
+            elif(self.YOLO_train is False and self.YOLO_save is False):
+                if self.video_path is not None:
+                    detector.video_stream()
+
+                else:
+                    detector.cam_capture()
+            
+            else:
+                detector.main()
+
+        else:
+            pass
+
+
+
+
 
 class ML_post_process(ML_meta):
     """
@@ -384,6 +462,17 @@ class ML_post_process(ML_meta):
         self.feature = feature
 
     def split_data(self, encode_categorical=True, y='target'):
+        """
+        Function to call the split data method from BaseMLClasses.py 
+
+        arguments:
+        encode_categorical - method to encode categorical data - Boolean True or False
+        target -  string of the name of the target variable in the dataset - String
+
+        output:
+        X and y data
+        """
+
         ml = self.call_ML()
         X, y = ml.split_X_y(self.target)
         if encode_categorical is True:
@@ -392,6 +481,17 @@ class ML_post_process(ML_meta):
         return X, y
 
     def get_X_test(self):
+        """
+        Function to get the X_test portion of the dataset from the split. Calls to the split
+        data method
+
+        arguments:
+        None
+
+        output:
+        X_test
+        """
+
         X, y = self.split_data()
         #X, y = self.split_data(encode_categorical=False)
         _, X_test, _, _ = self.call_ML().split_data(X, y)
@@ -399,9 +499,20 @@ class ML_post_process(ML_meta):
         return X_test
 
     def load_and_predict(self): 
+        """
+        Function to load a saved serialised trained ML/AI model and if required make a prediction on 
+        a set of input variables
 
+        (Currently only pickled .pkl formatted networks are permitted)
+
+        arguments:
+        None
+
+        output:
+        result
+        """
         if self.saved_model is not None:
-            
+            saved_predictions= []
             cwd = os.getcwd()
             path = str(cwd)
             pickled_model = pickle.load(open(self.model, 'rb'))
@@ -421,8 +532,21 @@ class ML_post_process(ML_meta):
             X_test = self.get_X_test()
             print(X_test)
             print(pickled_model.predict(X_test))
+            result = pickled_model.predict(X_test)
+            saved_predictions.append(result)
+
+        return result
 
     def data_info(self):
+        """
+        A simple method to output various information on the dataset, such as the shape, values, and unique counts
+
+        arguments: 
+        None
+
+        output:
+        None
+        """
         print("The shape of the dataset is " + str(self.data.shape))
         print(self.data.head())
         dict = {}
@@ -477,6 +601,15 @@ class ML_post_process(ML_meta):
             plt.show()
 
     def corr_plot(self):
+        """
+        Method to plot the correlation between parameters of the input dataset
+
+        arguments:
+        None
+
+        output:
+        No return, plot window with plot
+        """
         df_corr = self.data[self.con_cols].corr().transpose()
         df_corr
         fig = plt.figure(figsize=(10,10))
@@ -514,6 +647,9 @@ class ML_post_process(ML_meta):
     #     px.imshow(self.data.corr())
 
     def linearality(self):
+        """
+        Unused
+        """
         plt.figure(figsize=(18,18))
         for i, col in enumerate(self.data.columns, 1):
             plt.subplot(4, 3, i)
@@ -524,12 +660,31 @@ class ML_post_process(ML_meta):
 
 
     def pairplot(self):
+        """
+        Method to plot the pairwise relationship between the parameters within the dataset
+
+        arguments:
+        None
+
+        output:
+        No return, plot window displaying plot
+        """
         sns.pairplot(self.data, hue=self.target, palette=["#8000ff","#da8829"])
         plt.show()
         sns.pairplot(self.data, hue=self.target, kind='kde')
         plt.show()
 
     def kde_plot(self):
+        """
+        Method to plot the Kernel Density Estimate (kde), to visualise the distribution of observations within the dataset. 
+        Analagous to the histogram, it uses a continuous probability density to represent one or more dimensions
+
+        arguments:
+        None
+
+        output:
+        No return, plot window displaying plot
+        """
         fig = plt.figure(figsize=(18,18))
         gs = fig.add_gridspec(1,2)
         gs.update(wspace=0.5, hspace=0.5)
@@ -571,17 +726,28 @@ class ML_post_process(ML_meta):
         plt.show()
 
     def univariate_analysis(self, output_plot=None):
+        """
+        Method to perform univariate analysis for the features within the dataset calling one of the methods defined above
 
-        if output_plot == 'output':
-            self.target_plot()
-        elif output_plot == 'corr':
-            self.corr_plot()
-        elif output_plot == 'pair':
-            self.pairplot()
-        elif output_plot == 'kde':
-            self.kde_plot()
-        elif output_plot == 'linearality':
-            self.linearality()
+        arguments:
+        output_plot - One of: 'output', 'corr', 'pair', 'kde', or 'linerality'
+
+        output:
+        No return, plot window displaying the plot
+        """
+        try:
+            if output_plot == 'output':
+                self.target_plot()
+            elif output_plot == 'corr':
+                self.corr_plot()
+            elif output_plot == 'pair':
+                self.pairplot()
+            elif output_plot == 'kde':
+                self.kde_plot()
+            elif output_plot == 'linearality':
+                self.linearality()
+        except ValueError:
+            print("Invalid argument given to method, please select one of: 'output', 'corr', 'pair', 'kde', or 'linerality'")
 
 if __name__ == "__main__":
         # Initialise the meta class

@@ -1,6 +1,6 @@
-# HORUS - High-Precision Object Classification and Radar Unidentified Signal Separation
+# HEIMDALL
 
-print("HORUS \nMachine Learning and Artificial Intelligence classifier architecture \n")
+print("HEIMDALL \n")
 
 
 from ML_packaging import ML_meta
@@ -27,7 +27,7 @@ ML = ML_meta(df, all=False, model='EC', target='output', cross_val=True, search=
 #ML.apply_all_models(flag=True)
 ML.apply_single_model(save_model=True, save_model_name='gbc_model.pkl', cm=True)
 
-#post_process = ML_post_process(data=df, saved_model=None, predict=False, target='output', con_cols=con_cols, feature='caa')
+post_process = ML_post_process(data=df, saved_model=None, predict=False, target='output', con_cols=con_cols, feature='caa')
 # post_process.data_info()
 
-#post_process.univariate_analysis(output_plot='corr')
+post_process.univariate_analysis(output_plot='kde')
