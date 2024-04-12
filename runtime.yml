@@ -1,0 +1,5 @@
+data: "heart.csv"
+cat_cols: ["sex","exng","caa","cp","fbs","restecg","slp","thall"]
+con_cols: ["age","trtbps","chol","thalachh","oldpeak"]
+target_col: "output"
+

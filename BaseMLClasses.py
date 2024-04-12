@@ -4,7 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import Config
-
+import builtins
+import yaml
+import re
+from _items import ref, call
+from importlib import import_module
 import pickle
 
 # Import all necessary libraries for machine learning
@@ -141,6 +145,92 @@ class BasePredictor(ABC):
         print("params loaded")
         
         return self
+    
+def import_function(qualified_name):
+    path = qualified_name.split('.')
+    module = builtins
+
+    for i, key in enumerate(path[:,1]):
+        if not hasattr(module, key):
+
+            module = import_module('.'.join(path[:i+1]))
+        else:
+            module = getattr(module, key)
+        
+    function = getattr(module, path[-1])
+    
+    return function
+
+class PipelineLoader(yaml.SafeLoader):
+    @classmethod
+    def load(cls, instream):
+        loader = cls(instream)
+
+        try:
+            return loader.get_single_data()
+        finally:
+            loader.dispose()
+
+    def construct_map(self, node, deep=False):
+        mapping = super().construct_mapping(node, deep)
+
+        for key in mapping:
+            if not isinstance(key, str):
+                raise ValueError(f'key {key} is not the correct type (string), it is {type(key).__name__} \n'
+                                 f'{node.start_mark}')
+            
+        return mapping
+    
+    def construct_ref(self, node):
+        ref = self.construct_scalar(node)
+        
+        if ref[:1] == "$":
+            ref = ref[1:]
+        if not ref:
+            raise ValueError(f'An empty reference was provided {node.start_mark}')
+        
+        return ref(ref)
+    
+    def construct_call(self, name, node):
+
+        try: 
+            object = import_function(name)
+        except (ModuleNotFoundError, AttributeError) as err:
+            raise ImportError(f'{err} ') from err
+        
+        if isinstance(node, yaml.ScalarMode):
+            if node.value:
+                raise ValueError(f'The ScalarNode {node.value} has to be empty to import the object')
+            return object
+        
+        else:
+            if isinstance(node, yaml.SequenceNode):
+                args = self.construct_sequence(node)
+                kwargs = {}
+            elif isinstance(node, yaml.MappingNode):
+                args = []
+                kwargs = self.construct_map(node)
+
+            return call(object, args, kwargs)
+        
+    # def construct_quant(self, node):
+    #     val = self.construct_scalar(node)
+
+    #     return quantity(val)
+
+    #PipelineLoader.add_constructor('!ref', PipelineLoader.construct_ref)
+    #PipelineLoader.add_implicit_resolver('!ref', re.compile(r'\$\w+'), ['$'])
+    #PipelineLoader.add_multi_resolver('!', PipelineLoader.construct_call)
+    #PipelineLoader.add_constructor('!quantity', PipelineLoader.construct_quant)
+    #PipelineLoader.add_implicit_resolver()
+
+
+    def load_pipeline_yaml(filename):
+        with open(filename, 'r') as data:
+            return PipelineLoader.load(data) or {}
+ 
+        
+
 
 
 # Initialise a class that contains all machinery to format data and apply numerous machine learning algorithms to it
