@@ -3,7 +3,7 @@
  
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=for-the-badge&logo=Keras&logoColor=white) ![scikit-learn](https://img.shields.io/badge/scikit--learn-%23F7931E.svg?style=for-the-badge&logo=scikit-learn&logoColor=white)
 
-# HEIMDALL v0.3 - Updated 10/04/24
+# HEIMDALL v0.3 - Updated 12/04/24
 ## High-Resolution [----] Identification and [----] Discriminator [----]
 
 ### 1. ML_meta Class:
@@ -36,6 +36,7 @@ MultiLayeredPerceptron (MLP) bug fixes
 ### 3. FFNN Class:
 
 Implements a feedforward neural network.
+
 ### 4. BasePredictor Class:
 
 Provides a base class for prediction-related functionality.
@@ -47,6 +48,10 @@ Implements a convoluted neural network architecture.
 ### 6. YOLOv8 Object identifier
 
 Provides the functionality for a user-trained YOLO identifier to predict on either pre-recorded or live video stream
+
+### 7. Pipeline Class:
+
+Reads in YAML configuration file to streamline the implementation and usage of the package
 
 --------------------------------------------------------------------------------------------------
 ## Usage
@@ -82,10 +87,14 @@ Customise data splitting and encoding using split_data.
 --------------------------------------------------------------------------------------------------
 
 ## TO-DO
-Consider using GridSearchCV or RandomizedSearchCV for more structured hyperparameter tuning.
+Refine YAML input capability.
+Fully-refine the Pipeline class to be fully functional.
 Explore model explainability techniques (e.g., SHAP, LIME) to understand model behavior better.
 Employ techniques for handling imbalanced datasets if applicable.
 Consider model deployment strategies for real-world applications.
+Add a Setup.cfg file.
+Add a Setup.py file.
+Add UnitTests for the package. 
 
 
 Copyright © 2024 <C Jessop>. All rights reserved.
