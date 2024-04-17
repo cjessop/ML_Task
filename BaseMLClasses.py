@@ -7,7 +7,7 @@ import Config
 import builtins
 import yaml
 import re
-from _items import ref, call
+from _items import Ref, Call, Item
 from importlib import import_module
 import pickle
 

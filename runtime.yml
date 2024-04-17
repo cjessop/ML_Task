@@ -1,5 +1,26 @@
-data: "heart.csv"
-cat_cols: ["sex","exng","caa","cp","fbs","restecg","slp","thall"]
-con_cols: ["age","trtbps","chol","thalachh","oldpeak"]
-target_col: "output"
+---
+-data:
+  data: "heart.csv"
+  encode: True
+-model:
+  all: False
+  model: "RF"
+  search: False
+  save: False
+  save_model_name: ""
+  cross_val: False
+  confusion: True
+-target:
+  target: 'output'
+-post_processing:
+  saved_model: None
+  predict: False
+  feature: "caa"
+  univariate: False
+  univar_out: "corr"
+  cat_cols: ["sex","exng","caa","cp","fbs","restecg","slp","thall"]
+  con_cols: ["age","trtbps","chol","thalachh","oldpeak"]
+
+
+
 

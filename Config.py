@@ -21,10 +21,10 @@ class config():
                        1400, 1400, 1400, 1400, 1400, 1400, \
                        1400, 1400, 1400, 1400, 1400, 1400 ) 
     INTERV_TRAIN = 3
-    N_SAMPLES_TEST = list(10)
+    #N_SAMPLES_TEST = list(10)
     INTERV_TEST = 1
     NET_MODEL = 1
-    PAD_1 = WRAP
+    #PAD_1 = WRAP
 
     N_EPOCH = 100
     BATCH_SIZE = 16
