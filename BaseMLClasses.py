@@ -37,13 +37,13 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 
 # Import all necessary libraries for deep learning
-# import tensorflow as tf
-# from tensorflow.keras import layers
-# from tensorflow.keras.utils import get_cust_objects
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import Dense, Dropout
-# from tensorflow.keras.callbacks import EarlyStopping
-# from tensorflow.keras.models import load_model
+import tensorflow as tf
+from keras import layers
+#from keras.utils import get_cust_objects
+from keras.models import Sequential
+from keras.layers import Dense, Dropout
+from keras.callbacks import EarlyStopping
+from keras.models import load_model
 
 from abc import ABC, abstractmethod
 import inspect
@@ -211,7 +211,7 @@ class PipelineLoader(yaml.SafeLoader):
                 args = []
                 kwargs = self.construct_map(node)
 
-            return call(object, args, kwargs)
+            return Call(object, args, kwargs)
         
     # def construct_quant(self, node):
     #     val = self.construct_scalar(node)
@@ -429,7 +429,8 @@ class ML(BasePredictor):
         loss_df = pd.DataFrame(model.history.history)
         loss_df.plot()
         predictions = model.predict(X_test)
-        print(classification_report(y_test, predictions))
+        #print(classification_report(y_test, predictions))
+        print(predictions)
         return model
     
     def plot_confusion_matrix(self, model, X_test, y_test):
@@ -472,10 +473,14 @@ class ML(BasePredictor):
         return prediction
 
 class CNN():
-    def __init__(self, input_data):
+    def __init__(self, input_data, X_test, y_test):
         self.input_data=input_data
+        self.X_test = X_test
+        self.y_test = y_test
+        self.config = Config()
+        self.N_VARS = self.config.N_VARS
 
-    def fcn(self, X_test, y_test, input_shape, padding, pad_out, N_VARS = 1):
+    def fcn(self, input_shape, padding, pad_out, N_VARS):
         input_shape = layers.Input(shape = input_shape, name = 'input_data')
         conv_1 = layers.conv2D(64, (5, 5), padding=padding, data_format='channels_first')(self.input_data)
         batch_1 = layers.BatchNormalization(axis=1)(conv_1)
@@ -494,7 +499,7 @@ class CNN():
         activation_5 = layers.Activation('relu')(batch_5)
 
         conv_branch1 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
-        if (pred_fluct == True):
+        if (self.config.FLUCTUATIONS_PREDICT == True):
             activation_branch1 = layers.Activation('thres_relu')(conv_branch1)
             output_branch1 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
                                                            (int(pad_out/2), int(pad_out/2))),
@@ -509,7 +514,7 @@ class CNN():
 
         if (N_VARS == 2):
             conv_branch2 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
-            if (pred_fluct == True):
+            if (self.FLUCTUATIONS_PREDICT == True):
                 activation_branch2 = layers.Activation('thres_relu')(conv_branch2)
                 output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
                                                             (int(pad_out/2), int(pad_out/2))),
@@ -524,7 +529,7 @@ class CNN():
 
         elif (N_VARS == 3):
             conv_branch2 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
-            if (pred_fluct == True):
+            if (self.FLUCTUATIONS_PREDICT == True):
                 activation_branch2 = layers.Activation('thres_relu')(conv_branch2)
                 output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
                                                             (int(pad_out/2), int(pad_out/2))),
@@ -538,7 +543,7 @@ class CNN():
             losses['output_branch2'] = 'mse'
 
             conv_branch3 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
-            if (pred_fluct == True):
+            if (self.FLUCTUATIONS_PREDICT == True):
                 activation_branch3 = layers.Activation('thres_relu')(conv_branch3)
                 output_branch3 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
                                                             (int(pad_out/2), int(pad_out/2))),
@@ -556,7 +561,7 @@ class CNN():
         else:
             outputs_model = output_branch1
 
-        CNN_model = tf.keras.models.Model(inputs=inputs, threshold=RELU_THRESHOLD)
+        CNN_model = tf.keras.models.Model(inputs=self.config.inputs, threshold=self.config.RELU_THRESHOLD)
         return CNN_model
 
 class svm(ML):

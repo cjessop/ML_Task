@@ -4,10 +4,10 @@
   encode: True
 -model:
   all: False
-  model: "RF"
+  model: "CNN"
   search: False
-  save: False
-  save_model_name: ""
+  save: True
+  save_model_name: "model_mlp.pkl"
   cross_val: False
   confusion: True
 -target:
@@ -20,7 +20,9 @@
   univar_out: "corr"
   cat_cols: ["sex","exng","caa","cp","fbs","restecg","slp","thall"]
   con_cols: ["age","trtbps","chol","thalachh","oldpeak"]
-
+-architecture:
+  architecture: 'Keras'
+  GPU: True
 
 
 

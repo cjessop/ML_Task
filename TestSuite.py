@@ -38,16 +38,23 @@ with open("runtime.yml", 'r') as f:
     cross_val = data_in['-model']['cross_val']
     cm = data_in['-model']['confusion']
 
-    saved_model = ['-post_processing']['saved_model']
-    predict = ['-post_processing']['predict']
+    saved_model = data_in['-post_processing']['saved_model']
+    predict = data_in['-post_processing']['predict']
     target = data_in['-target']['target']
-    cat_cols = ['-post_processing']['cat_cols']
-    con_cols = ['-post_processing']['con_cols']
-    feature = ['-post_processing']['feature']
+    cat_cols = data_in['-post_processing']['cat_cols']
+    con_cols = data_in['-post_processing']['con_cols']
+    feature = data_in['-post_processing']['feature']
     print(target)
 
+
+if data_in['-architecture']['architecture'].lower() == 'keras':
+    # try:
+    ML = ML_meta(df, all=all, model=False, CNN=True, on_GPU=True)
+    # except RuntimeError:
+    #     raise RuntimeError
+    ML.apply_CNN(CNN_flag=True)
+
 ML = ML_meta(df, all=all, model=model, target=target, search=search, cross_val=cross_val)
-#ML.apply_all_models(flag=all)
 ML.apply_single_model(save_model=save, save_model_name=save_name, cm=cm)
 
 
