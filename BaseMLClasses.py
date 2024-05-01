@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import Config
 import builtins
 import yaml
 import re
+from Config import config
 from _items import Ref, Call, Item
 from importlib import import_module
 import pickle
@@ -473,16 +473,28 @@ class ML(BasePredictor):
         return prediction
 
 class CNN():
-    def __init__(self, input_data, X_test, y_test):
-        self.input_data=input_data
+    def __init__(self, X_test, y_test):
+        #self.input_data=input_data
         self.X_test = X_test
         self.y_test = y_test
-        self.config = Config()
+        self.config = config()
         self.N_VARS = self.config.N_VARS
 
-    def fcn(self, input_shape, padding, pad_out, N_VARS):
+    def get_model(self):
+        model_config = {
+                        'input_shape': (32, 32, 3), 
+                        'padding': 'same',
+                        'pad_out': 2,
+                        'N_VARS': 3,
+                        'FLUCTUATIONS_PREDICT': True
+                        }
+        input_shape = model_config['input_shape']
+        padding = model_config['padding']
+        pad_out = model_config['pad_out']
+        N_VARS = model_config['N_VARS']
+
         input_shape = layers.Input(shape = input_shape, name = 'input_data')
-        conv_1 = layers.conv2D(64, (5, 5), padding=padding, data_format='channels_first')(self.input_data)
+        conv_1 = layers.Conv2D(64, (5, 5), padding=padding, data_format='channels_first')(self.X_test)
         batch_1 = layers.BatchNormalization(axis=1)(conv_1)
         activation_1 = layers.Activation('relu')(batch_1)
         conv_2 = layers.Conv2D(128, (3,3), padding=padding, data_format='channels_first')(activation_1)
@@ -498,7 +510,7 @@ class CNN():
         batch_5 = layers.BatchNormalization(axis=1)(conv_5)
         activation_5 = layers.Activation('relu')(batch_5)
 
-        conv_branch1 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+        conv_branch1 = layers.Conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
         if (self.config.FLUCTUATIONS_PREDICT == True):
             activation_branch1 = layers.Activation('thres_relu')(conv_branch1)
             output_branch1 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
@@ -528,7 +540,7 @@ class CNN():
             losses['output_branch2'] = 'mse'
 
         elif (N_VARS == 3):
-            conv_branch2 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+            conv_branch2 = layers.Conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
             if (self.FLUCTUATIONS_PREDICT == True):
                 activation_branch2 = layers.Activation('thres_relu')(conv_branch2)
                 output_branch2 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
@@ -542,7 +554,7 @@ class CNN():
                 
             losses['output_branch2'] = 'mse'
 
-            conv_branch3 = layers.conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
+            conv_branch3 = layers.Conv2D(1, (3,3), padding=padding, data_format = 'channels_first')(activation_5)
             if (self.FLUCTUATIONS_PREDICT == True):
                 activation_branch3 = layers.Activation('thres_relu')(conv_branch3)
                 output_branch3 = layers.Cropping2D(cropping = ((int(pad_out/2), int(pad_out/2)),
@@ -561,8 +573,18 @@ class CNN():
         else:
             outputs_model = output_branch1
 
-        CNN_model = tf.keras.models.Model(inputs=self.config.inputs, threshold=self.config.RELU_THRESHOLD)
-        return CNN_model
+        CNN_model = tf.keras.models.Model(inputs=self.config.inputs, threshold=self.config.RELU_THRESHOLD, outputs=outputs_model)
+        CNN_model.compile(optimizer='adam', loss=losses)
+        return CNN_model, []
+    
+    def get_dataset(self):
+        # Load and preprocess the dataset for training and validation
+        # Assuming input_data, X_test, and y_test are part of the dataset
+
+        # Split the dataset into training and validation sets
+        dataset_train, dataset_val = train_test_split(self.input_data, test_size=0.2, random_state=42)
+
+        return dataset_train, dataset_val
 
 class svm(ML):
     

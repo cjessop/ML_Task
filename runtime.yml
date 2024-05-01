@@ -3,11 +3,11 @@
   data: "heart.csv"
   encode: True
 -model:
-  all: False
-  model: "CNN"
+  all: True
+  model: "RF"
   search: False
   save: True
-  save_model_name: "model_mlp.pkl"
+  save_model_name: "model_RF.pkl"
   cross_val: False
   confusion: True
 -target:
@@ -21,8 +21,9 @@
   cat_cols: ["sex","exng","caa","cp","fbs","restecg","slp","thall"]
   con_cols: ["age","trtbps","chol","thalachh","oldpeak"]
 -architecture:
-  architecture: 'Keras'
+  architecture: 'sklearn'
   GPU: True
 
 
-
+-architectureList:
+  list: ["Keras", "sklearn", "Pytorch"]

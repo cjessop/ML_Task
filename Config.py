@@ -1,5 +1,8 @@
 class config():
 
+
+    NAME = "CNN_model"
+
     N_VARS = 2
     N_VARS_OUT = 1
     VARS_NAME_IN = []
@@ -11,7 +14,7 @@ class config():
     TRAIN_YP = 0
     TARGET_YP = 50
 
-    ON_GPU = False
+    ON_GPU = True
     N_GPU = 1
     WHICH_GPU_TRAIN = 0
     WHICH_GPU_TEST = 1

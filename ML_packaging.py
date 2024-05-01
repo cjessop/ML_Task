@@ -1,3 +1,4 @@
+
 # HEIMDALL
 
 from audioop import cross
@@ -5,6 +6,7 @@ from BaseMLClasses import BasePredictor
 from BaseMLClasses import ML
 from BaseMLClasses import ffnn, CNN
 import tensorflow as tf
+import keras
 from Config import config
 import pickle
 import sys
@@ -181,10 +183,15 @@ class ML_meta:
             for model in models:
                 score = ml.model_score(model, X_test, y_test)
                 scores.append(score)
+                scores.append(str(model))
 
-            print(scores)
-
-
+            for score in scores:
+                if "RandomForest" in score:
+                    RF_score = [0]
+                    for i in range (0, len(score) - 1):
+                        if max(score[i]) > RF_score[0]:
+                            RF_score[0] = score[i]
+                    print(RF_score)
 
         return rf, svm, knn, lr, nb, dt, ec, gbc, abc, scores
 
@@ -199,13 +206,17 @@ class ML_meta:
             ffnn_predictor.fit(X_train, y_train)
             ffnn_predictor.predict(X_test)
 
-    def apply_CNN(self, CNN_flag=False):
+    def apply_CNN(self):
         """
-        Applies the Convoluted Neural Network architecture defined in BaseMLClasses. 
+        Applies the Convolutional Neural Network architecture defined in BaseMLClasses. 
         Args: 
-            CNN_flag - (bool, optional): If True, applies CNN. Defaults to False.
+        prb_def: Definition of the problem (type not specified).
+        config: Configuration object.
         """
         if self.CNN:
+            X, y = self.split_data(encode_categorical=True)
+            X_train, X_test, y_train, y_test = self.call_ML().split_data(X, y)
+            _CNN = CNN(X_test, y_test)
             config_ = config()
             os.environ["CUDA_VISIBLE_DEVICES"]=str(config_.WHICH_GPU_TRAIN)
 
@@ -216,19 +227,19 @@ class ML_meta:
             avail_GPUs = len(physical_GPUs)
 
             print("TensorFlow ", tf.__version__, " GPU: ", avail_GPUs)
-            print("Keras: ", tf.keras.__version__)
+            print("Keras: ", keras.__version__)
 
-            if physical_GPUs:
+            if avail_GPUs:
                 try:
                     for gpu in physical_GPUs:
                         tf.config.experimental.set_memory_growth(gpu, True)
                 except RuntimeError:
                     print(RuntimeError)
 
-            onGPU = config_.ON_GPU
+            on_GPU = config_.ON_GPU
             num_GPU = config_.N_GPU
 
-            if (self.on_GPU == True and num_GPU > 1):
+            if (on_GPU and num_GPU >= 1):
                 distributed_training = self.on_GPU
             else:
                 print("Need at least one GPU")
@@ -236,20 +247,17 @@ class ML_meta:
 
 
             #Actually define the function get_dataset, or just use the regular keras model = tf.keras.Model() method
-            dataset_train, dataset_test, n_train_sample, n_validation_sample, model_config = get_dataset(prb_def, config_, train=True, distributed_training=distributed_training)
-
+            #dataset_train, dataset_test, n_train_sample, n_validation_sample, model_config = _CNN.get_dataset(config_, train=True, distributed_training=distributed_training)
+            #dataset_train, dataset_val = _CNN.get_dataset()
             
             #Again, actially define the get_model function, or just call the method and load the function in
-            CNN_model, callbacks = get_model(model_config)
+            CNN_model, callbacks = _CNN.get_model()
 
-            #CNN_model = 
-
-
-            train_hist = CNN_model.fit(dataset_train,
+            train_history = CNN_model.fit(X_train,
                                        epochs=config_.N_EPOCH,
-                                       steps_per_epoch=int(np.ceil(n_train_sample/model_config['batch_size'])),
-                                       validation_data=n_validation_sample,
-                                       validation_steps=int(np.ceil(n_validation_sample/model_config['batch_size'])),
+                                       steps_per_epoch=int(np.ceil(config_.N_SAMPLES_TRAIN/config_.BATCH_SIZE)),
+                                       validation_data=X_test,
+                                       validation_steps=int(np.ceil(config_.N_SAMPLES_TRAIN/config_.BATCH_SIZE)),
                                        verbose=2,
                                        callbacks=callbacks)
             
@@ -257,7 +265,7 @@ class ML_meta:
             if os.path.exists(save_path) == False:
                 os.mkdir(save_path)
 
-            tf.keras.save_model(CNN_model, save_path+model_config['name'],
+            keras.models.save_model(CNN_model, save_path+config_.NAME,
                                 overwrite=True, include_optimizer=True,
                                 save_format='h5')
             
@@ -265,7 +273,9 @@ class ML_meta:
             val_loss = train_history.history['val_loss']
             tTrain = callbacks[-1].times
 
-            np.savez(save_path+model_config['name']+'_log', tLoss=train_loss, vLoss=val_loss, tTrain=tTrain)
+            np.savez(save_path+config_.NAME+'_log', tLoss=train_loss, vLoss=val_loss, tTrain=tTrain)
+        else:
+            print("No available GPUs for training. Please check your configuration")
 
 
     # Applies a specified single model
@@ -755,4 +765,3 @@ if __name__ == "__main__":
     meta_obj = ML_meta(data, all=False, model="MLP")
     meta_obj.apply_single_model()
     
-
