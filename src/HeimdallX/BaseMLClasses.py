@@ -42,9 +42,13 @@ try:
     from keras import layers
     #from keras.utils import get_cust_objects
     from keras.models import Sequential
-    from keras.layers import Dense, Dropout
+    from keras.layers import Input
+    from keras.layers import Dense, Dropout, Lambda
+    #from tf.keras.preprocessing.image import ImageDataGenerator
+    from keras.utils import image_dataset_from_directory    
     from keras.callbacks import EarlyStopping
     from keras.models import load_model
+    from keras.applications import MobileNetV2
 except ImportError:
     print("Unable to Import Tensorflow/Keras inside of the Base Classes script")
     pass
@@ -475,6 +479,45 @@ class ML(BasePredictor):
     def predict(self, model, X):
         prediction = model.predict(X)
         return prediction
+
+class Simple_CNN():
+    def __init__(self, TRAIN_PATH, VAL_PATH, HEIGHT=224, WIDTH=224, EPOCHS=20, BATCH_SIZE=32, LEARNING_RATE=1e-4, RGB=3) -> None:
+        self.HEIGHT = HEIGHT
+        self.WIDTH = WIDTH
+        self.EPOCHS = EPOCHS
+        self.BATCH_SIZE = BATCH_SIZE
+        self.LEARNING_RATE = LEARNING_RATE
+        self.TRAIN_PATH = TRAIN_PATH
+        self.VAL_PATH = VAL_PATH
+        self.RGB = RGB
+
+
+    def preprocess(self):
+        train_data = tf.keras.preprocessing.image.ImageDataGenerator(rescale = 1./255, rotation_image=20, zoom_range=0.15,
+                                                                     width_shift_range=0.2, height_shift_range=0.2, shear_range=0.15,
+                                                                     horizontal_flip=True, fill_mode='nearest')
+        train = train_data.flow_from_directory(directory=self.TRAIN_PATH, shuffle=True, target_size=(self.HEIGHT, self.WIDTH), class_mode='binary', batch_size=self.BATCH_SIZE)
+
+        train_ds = image_dataset_from_directory(directory=self.TRAIN_PATH, labels='inferred', label_mode='int', class_names=None,
+                                                color_mode='rgb', batch_size=self.BATCH_SIZE, image_size=(self.WIDTH, self.HEIGHT), shuffle=True,
+                                                seed=None, validation_split=None, subset=None, interpolation='bilinear', follow_links=False,
+                                                crop_to_aspect_ratio=False, pad_to_aspect_ratio=False, data_format=None, verbose=True)
+
+        val_data = tf.keras.preprocessing.image.ImageDataGenerator()
+        validation = val_data.flow_from_directory(directory=self.VAL_PATH, shuffle=False, target_size=(self.HEIGHT, self.WIDTH), class_mode='binary', batch_size=self.BATCH_SIZE)
+
+        baseModel = MobileNetV2(weights='imagenet', include_top=False, input_tensor=Input(shape=(self.HEIGHT, self.WIDTH, self.RGB)))
+        baseModel.trainable = False
+
+        return train, validation, baseModel
+    
+    def model(self):
+        train, validation, baseModel = self.preprocess()
+
+        model = Sequential([
+            Lambda
+        ])
+    
 
 class CNN():
     def __init__(self, X_test, y_test):
