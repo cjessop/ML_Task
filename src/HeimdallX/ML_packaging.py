@@ -2,7 +2,6 @@
 # HEIMDALL
 
 from audioop import cross
-from BaseMLClasses import BasePredictor
 from BaseMLClasses import ML
 from BaseMLClasses import ffnn, CNN
 

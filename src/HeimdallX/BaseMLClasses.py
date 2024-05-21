@@ -9,7 +9,6 @@ import re
 from Config import config
 from _items import Ref, Call, Item
 from importlib import import_module
-import pickle
 
 # Import all necessary libraries for machine learning
 from sklearn.model_selection import train_test_split
@@ -43,11 +42,15 @@ try:
     #from keras.utils import get_cust_objects
     from keras.models import Sequential
     from keras.layers import Input
-    from keras.layers import Dense, Dropout, Lambda
+    from keras.layers import Dense, Dropout, Lambda, AveragePooling2D, Flatten
+    from keras.layers import Rescaling, RandomContrast, RandomZoom, RandomTranslation, RandomBrightness, RandomRotation
+    from keras.layers import RandomFlip, RandomCrop
     #from tf.keras.preprocessing.image import ImageDataGenerator
     from keras.utils import image_dataset_from_directory    
     from keras.callbacks import EarlyStopping
     from keras.models import load_model
+    from keras.optimizers import Adam
+    from keras.applications import mobilenet_v2
     from keras.applications import MobileNetV2
 except ImportError:
     print("Unable to Import Tensorflow/Keras inside of the Base Classes script")
@@ -89,11 +92,37 @@ class BasePredictor(ABC):
 
     @abstractmethod
     def fit(self, X, y):
-        pass
+        """
+        Trains the model on the given data.
+
+        Args:
+            X (pandas.DataFrame): Input features.
+            y (pandas.Series): Target variable.
+
+        Raises:
+            NotImplementedError: This is an abstract method and should be
+                implemented in the derived class.
+        """
+
+        raise NotImplementedError("fit method must be implemented in the derived class.")
 
     @abstractmethod
     def predict(self, X):
-        pass
+        """
+        Makes predictions on new data using the trained model.
+
+        Args:
+            X (pandas.DataFrame): Input features.
+
+        Returns:
+            numpy.ndarray: Predicted values.
+
+        Raises:
+            NotImplementedError: This is an abstract method and should be
+                implemented in the derived class.
+        """
+        
+        raise NotImplementedError("predict method must be implemented in the derived class.")
 
 
     # Open source class method to get parameters
@@ -250,6 +279,12 @@ class ML(BasePredictor):
         data (pd.DataFrame): The dataset to work with.
     """
     def __init__(self, data):
+        """
+        Initializes the ML class with the given data.
+
+        Args:
+            data (pandas.DataFrame): The dataset to work with.
+        """
         self.data = data
 
 
@@ -270,12 +305,33 @@ class ML(BasePredictor):
     
     # Function to encode categorical data
     def encode_categorical(self, X, y):
+        """
+        Function to encode categorical data.
+
+        Args:
+            X (pandas.DataFrame): Input features.
+            y (pandas.Series): Target variable.
+
+        Returns:
+            tuple: (X, y) with encoded categorical features.
+        """
         X = pd.get_dummies(X, drop_first=True)
         y = pd.get_dummies(y, drop_first=True)
         return X, y
     
     # Function to deal with missing data
     def missing_data(self, X, y, strategy='mean'):
+        """
+        Function to deal with missing data.
+
+        Args:
+            X (pandas.DataFrame): Input features.
+            y (pandas.Series): Target variable.
+            strategy (str, optional): Imputation strategy for missing values. Defaults to 'mean'.
+
+        Returns:
+            tuple: (X, y) with imputed missing values.
+        """
         from sklearn.impute import SimpleImputer
         imputer = SimpleImputer(missing_values=np.nan, strategy=strategy)
         X = imputer.fit_transform(X)
@@ -284,23 +340,90 @@ class ML(BasePredictor):
 
     # Function to extract features from classification data
     def extract_features(self, X, y, test_size=0.2):
+        """
+        Function to extract features from classification data.
+
+        Args:
+            X (pandas.DataFrame): Input features.
+            y (pandas.Series): Target variable.
+            test_size (float, optional): Proportion of the dataset to include in the test split. Defaults to 0.2.
+
+        Returns:
+            tuple: (X_train, X_test, y_train, y_test)
+        """
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
         return X_train, X_test, y_train, y_test
 
     # Function to split data into training and testing sets
     def split_data(self, X, y, test_size=0.2):
+        """
+        Function to split data into training and testing sets.
+
+        Args:
+            X (pandas.DataFrame): Input features.
+            y (pandas.Series): Target variable.
+            test_size (float, optional): Proportion of the dataset to include in the test split. Defaults to 0.2.
+
+        Returns:
+            tuple: (X_train, X_test, y_train, y_test)
+        """
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
         return X_train, X_test, y_train, y_test
     
     # Function to scale data
     def scale_data(self, X_train, X_test):
+        """
+        Function to scale data.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+
+        Returns:
+            tuple: (X_train, X_test) with scaled features.
+        """
         scaler = StandardScaler()
         X_train = scaler.fit_transform(X_train)
         X_test = scaler.transform(X_test)
         return X_train, X_test
     
+    def prepare_data(self, name, label, columns, end_range, index_column=False):
+        """
+        Function to prepare data for modeling.
+
+        Args:
+            name (str): Name of the dataset file.
+            label (str): Name of the target variable column.
+            columns (list): List of columns to drop.
+            end_range (int): End range for iterating over the dataset.
+            index_column (bool, optional): Whether to use the first column as an index. Defaults to False.
+        """
+        df1 = pd.read_csv(self.data, index_col=index_column)
+        df1['class'] = label
+        drop_columns = columns
+
+        for item in drop_columns:
+            df1 = df1.drop(item, axis=1)
+
+        Total_df = pd.DataFrame()
+
+        for i in range(0, end_range):
+            Total_df = Total_df.append()
+
     # Function to apply logistic regression
     def lr(self, X_train, X_test, y_train, y_test):
+        """
+        Trains a logistic regression model.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            y_train (pandas.Series): Training target variable.
+            X_test  (pandas.DataFrame): Testing features.
+            y_test  (pandas.Series): Testing target variable.
+
+        Returns:
+            LogisticRegressionModel: Trained logistic regression model.
+        """
         logmodel = LogisticRegression()
         logmodel.fit(X_train, y_train)
         predictions = logmodel.predict(X_test)
@@ -309,6 +432,19 @@ class ML(BasePredictor):
     
     # Function to apply KNN
     def knn(self, X_train, X_test, y_train, y_test, n_neighbors=1):
+        """
+        Trains a k-nearest neighbors (KNN) model.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            y_train (pandas.Series): Training target variable.
+            X_test  (pandas.DataFrame): Testing features.
+            y_test  (pandas.Series): Testing target variable.
+            n_neighbors (int, optional): Number of neighbors to consider. Defaults to 5.
+
+        Returns:
+            KNNModel: Trained KNN model.
+        """
         knn = KNeighborsClassifier(n_neighbors=n_neighbors)
         knn.fit(X_train, y_train)
         pred = knn.predict(X_test)
@@ -317,6 +453,19 @@ class ML(BasePredictor):
 
     # Function to apply SVM
     def svm(self, X_train, X_test, y_train, y_test, kernel='rbf'):
+        """
+        Trains a Support Vector Machine (SVM) model.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            y_train (pandas.Series): Training target variable.
+            X_test  (pandas.DataFrame): Testing features.
+            y_test  (pandas.Series): Testing target variable.
+            kernel  (str, optional): Desired SVM kernel. Defaults to 'rbf'.
+
+        Returns:
+            svc_model: Trained SVM model.
+        """
         svc_model = SVC(kernel=kernel)
         svc_model.fit(X_train, y_train)
         predictions = svc_model.predict(X_test)
@@ -325,6 +474,19 @@ class ML(BasePredictor):
     
     # Function to apply decision tree
     def dt(self, X_train, X_test, y_train, y_test, max_depth=8):
+        """
+        Function to apply decision tree.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+            y_train (pandas.Series): Training target variable.
+            y_test (pandas.Series): Test target variable.
+            max_depth (int, optional): Maximum depth of the tree. Defaults to 8.
+
+        Returns:
+            DecisionTreeClassifier: Trained decision tree model.
+        """
         dtree = DecisionTreeClassifier( max_depth=max_depth)
         dtree.fit(X_train, y_train)
         predictions = dtree.predict(X_test)
@@ -333,6 +495,20 @@ class ML(BasePredictor):
     
     # Function to apply random forest
     def rf(self, X_train, X_test, y_train, y_test, n_estimators=100, max_depth=8):
+        """
+        Function to apply random forest.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+            y_train (pandas.Series): Training target variable.
+            y_test (pandas.Series): Test target variable.
+            n_estimators (int, optional): Number of trees in the forest. Defaults to 100.
+            max_depth (int, optional): Maximum depth of the trees. Defaults to 8.
+
+        Returns:
+            RandomForestClassifier: Trained random forest model.
+        """
         rfc = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
         rfc.fit(X_train, y_train)
         predictions = rfc.predict(X_test)
@@ -341,6 +517,18 @@ class ML(BasePredictor):
     
     # Function to apply naive bayes
     def nb(self, X_train, X_test, y_train, y_test):
+        """
+        Function to apply naive bayes.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+            y_train (pandas.Series): Training target variable.
+            y_test (pandas.Series): Test target variable.
+
+        Returns:
+            MultinomialNB: Trained naive bayes model.
+        """
         nb = MultinomialNB()
         nb.fit(X_train, y_train)
         predictions = nb.predict(X_test)
@@ -348,6 +536,19 @@ class ML(BasePredictor):
         return nb
 
     def gbc(self, X_train, X_test, y_train, y_test, random_state=1):
+        """
+        Function to apply gradient boosted classifier.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+            y_train (pandas.Series): Training target variable.
+            y_test (pandas.Series): Test target variable.
+            random_state (int, optional): Random state for reproducibility. Defaults to 1.
+
+        Returns:
+            GradientBoostingClassifier: Trained gradient boosted classifier model.
+        """
         gbc = GradientBoostingClassifier(random_state=random_state)
         gbc.fit(X_train, y_train)
         predicitions = gbc.predict(X_test)
@@ -503,21 +704,53 @@ class Simple_CNN():
                                                 seed=None, validation_split=None, subset=None, interpolation='bilinear', follow_links=False,
                                                 crop_to_aspect_ratio=False, pad_to_aspect_ratio=False, data_format=None, verbose=True)
 
+        data_augmentation = Sequential([
+            Rescaling(1./255),
+            RandomRotation(0.2),
+            RandomZoom(0.15),
+            RandomFlip('horizontal'),
+            RandomTranslation(height_factor=0.2, width_factor=0.2)
+        ])
+
+        train_ds = train_ds.map(lambda x, y: (data_augmentation(x, training=True), y))
+
+        train_ds = train_ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+
         val_data = tf.keras.preprocessing.image.ImageDataGenerator()
         validation = val_data.flow_from_directory(directory=self.VAL_PATH, shuffle=False, target_size=(self.HEIGHT, self.WIDTH), class_mode='binary', batch_size=self.BATCH_SIZE)
 
         baseModel = MobileNetV2(weights='imagenet', include_top=False, input_tensor=Input(shape=(self.HEIGHT, self.WIDTH, self.RGB)))
         baseModel.trainable = False
 
-        return train, validation, baseModel
+        return train_ds, validation, baseModel
     
     def model(self):
-        train, validation, baseModel = self.preprocess()
+        train_ds, validation, baseModel = self.preprocess()
 
         model = Sequential([
-            Lambda
+            Lambda(mobilenet_v2.preprocess_input, name='preprocessing', input_shape=(self.HEIGHT, self.WIDTH, self.RGB)),
+            AveragePooling2D(pool_size=(7, 7)),
+            Flatten(name='flatten'),
+            Dense(128, activation='relu'),
+            Dropout(0.5),
+            Dense(2, activation='softmax')
         ])
-    
+
+        model.summary()
+
+        optimiser = Adam(learning_rate=self.LEARNING_RATE, decay=self.LEARNING_RATE / self.EPOCHS)
+
+        model.compile(loss='binary_crossentropy', optimizer=optimiser, metrics=['accuracy'])
+
+        model.fit(train_ds, steps_per_epoch= train_ds.n // self.BATCH_SIZE, validation_data=validation, validation_steps=validation.n // self.BATCH_SIZE, epochs=self.EPOCHS)
+
+        if self.save == True:
+            model.save("SimpleCNNModel.model")
+            
+            return model
+        else:
+            
+            return model
 
 class CNN():
     def __init__(self, X_test, y_test):
