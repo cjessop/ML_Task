@@ -156,7 +156,181 @@ prediction.
 - `find_best_model(self, models, X_test, y_test)`: Finds the best model among the given models based on accuracy
 - `model_score(self, model, X_test, y_test)`: Calculates the cross-validation scores for the given model and data
 
+**Simple CNN**
 
+`class Simple_CNN`
 
+This class implements a simple convolution neural network (CNN) architecture for the purposes of image classification.
+
+### Methods
+
+- `__init__(self, TRAIN_PATH, VAL_PATH, HEIGHT=224, WIDTH=224, EPOCHS=20, BATCH_SIZE=32, LEARNING_RATE=1e-4, RGB=3)`: Initialises the Simple_CNN class with the given parameters
+- `preprocess(self)`: Preprocesses the data for training and validation
+- `model(self, save=False)`: Builds and trains the CNN model
+
+**CNN**
+
+`class CNN()`
+
+This class implements a simple convolution neural network (CNN) architecture for the purposes of image classification. Differs from the `Simple_CNN` class as it has a wider 
+range of architectures (shape wise).
+
+### Methods
+
+- `__init__(self, X_test, y_test)`: Initialises the CNN class with the given test data
+- `get_model(self)`: Builds and returns the CNN model
+- `get_dataset(self)`: Loads and preprocesses the dataset for training and validation
+
+**SVM** 
+
+`class svm(ML)`
+
+This class is a subclass of `ML`, it provides methods for applying the Support Vector Machine (SVM) algorithm.
+
+### Methods
+
+- `run(self, X_train, X_test, y_train, y_test)`: This trains and evaluates the SVM model on the input data
+
+**ffnn** 
+
+`class ffnn(BasePredictor)`
+
+This class implements a feed-forward neural network (ffnn) for classification (or regression?) tasks. Inherits
+from BasePredictor.
+
+### Methods
+
+- `__init__(self, hidden_layers=[], dropout=0, epochs=5, activation=[], batch_size=None)`: Initialises the ffnn class with the given hyperparameters
+- `fit(self, X, y)`: Trains the FFNN model on the given data
+- `predict(self, X)`: Makes predictions using the trained FFNN model
+
+**Pipeline Loader**
+
+`class PipelineLoader(yaml.safeloader)`
+
+This class is a custom YAML loader which provides functionality for loading and constructing objects from YAML files.
+
+### Methods
+
+- `load(cls, instream)`: Loads and returns the single data object from the input stream
+- `construct_map(self, node, deep=False)`: Constructs a mapping object from the given YAML node
+- `construct_ref(self, node)`: Constructs a reference object from the given YAML node
+- `construct_call(self, name, node)`: Constructs a callable object from the given YAML node
+- `load_pipeline_yaml(filename)`: Loads a pipeline YAML file and returns its contents
+
+The ML_packaging module contains several classes and functions related to applying the classes and methods found in BaseMLClasses.
+This module provides the framework for applying various machine learning algorithms to actual problems, in addition to functionality
+such as creating and saving the serialised models themselves. 
+
+**ML_meta**
+
+`class ML_meta()`
+
+This class creates the meta class that holds the functionality to apply all of the machine learning algorithms. It acts as a coordiantor,
+interacting with other classes for specific model implementations.
+
+**Parameters**
+
+- data: input dataset in disordered format - Column labelled dataset
+- ffnn: bool, optional
+  Whether to use a feed-forward neural network to make a prediction. Default is False.
+- all: bool, optional
+Whether to apply all classifier models to the dataset. Default is True.
+- model: str, optional
+The name of the model to be applied. Default is False.
+- model_dict: dict, optional
+Dictionary of all models and their corresponding names. Default is a pre-defined dictionary of model names.
+- target: str, optional
+The name of the target feature from the input dataset. Default is 'target'.
+- help: bool, optional
+Whether to print the help message. Default is False.
+- clean: bool, optional
+Whether to delete all saved models. Default is False.
+- search: str, optional
+Perform grid search either randomly or evenly spaced on a grid. Options are 'random' or 'grid'. Default is None.
+- cross_val: bool, optional
+Perform k-fold cross validation. Default is False.
+- CNN: bool, optional
+Apply a convolutional neural network. Default is None.
+- on_GPU: bool, optional
+Run the CNN on a GPU. Default is False.
+- YOLO: bool, optional
+Instantiate an instance of the YOLO class for training or prediction. Default is False.
+- data_path: str, optional
+The path to the dataset. Default is None.
+- image_path: str, optional
+The path to the image library. Default is None.
+- image_number: int, optional
+Number of images to use. Default is None.
+- YOLO_model: str, optional
+The path or name of the trained YOLO algorithm. Default is None.
+- video_path: str, optional
+The path to the video on which you would like to predict. Default is None.
+- video_capture: bool, optional
+Use a connected image or camera sensor for live input to predict on. Default is False.
+- YOLO_train: bool, optional
+Flag to train a new YOLO model, requires data_path and image_path to be not None. Default is False.
+- YOLO_save: bool, optional
+Flag to save the YOLO model. Default is False.
+
+**Methods**
+
+misc()
+Handles miscellaneous tasks such as printing help messages and cleaning saved models.
+
+call_ML()
+Creates an instance of the ML class.
+
+split_data(encode_categorical=True, y='target')
+Splits data into features (X) and target (y), with optional encoding of categorical features.
+
+apply_all_models(flag=False)
+Applies multiple machine learning models to the dataset and compares their scores.
+
+apply_neural_net()
+Applies a feedforward neural network model (FFNN).
+
+apply_CNN()
+Applies the Convolutional Neural Network architecture defined in BaseMLClasses.
+
+apply_single_model(cm=False, save_model=False, save_model_name=False)
+Applies a single machine learning model to the dataset.
+
+apply_YOLO()
+Applies or trains a YOLO model on an input video or live capture.
+
+ML_post_process
+A class that handles the post-processing functionality of any saved ML models.
+
+Parameters:
+data: Input dataframe in the same format as the data used to test/train the model.
+saved_model: str, optional
+Input model saved as .pkl - Binary Machine Learning Model string name. Default is None.
+predict: bool, optional
+Whether or not to predict on input data. Default is False.
+target: str, optional
+The name of the target feature. Default is None.
+con_cols: str or list of str, optional
+The continuous column names. Default is None.
+feature: str, optional
+Specific feature for univariate analysis. Default is None.
+Methods:
+split_data(encode_categorical=True, y='target')
+Splits data into features (X) and target (y), with optional encoding of categorical features.
+
+get_X_test()
+Gets the X_test portion of the dataset from the split data method.
+
+load_and_predict()
+Loads a saved serialized trained ML/AI model and makes predictions on a set of input variables.
+
+data_info()
+Outputs various information on the dataset, such as shape, values, and unique counts.
+
+target_plot()
+Plots the target variable output as a bar graph.
+
+corr_plot()
+Plots the correlation between parameters of the input dataset.
 
 Copyright © 2024 <C Jessop>. All rights reserved.
