@@ -275,62 +275,52 @@ Flag to save the YOLO model. Default is False.
 
 **Methods**
 
-misc()
-Handles miscellaneous tasks such as printing help messages and cleaning saved models.
+- `misc()`: Handles miscellaneous tasks such as printing help messages and cleaning saved models
 
-call_ML()
-Creates an instance of the ML class.
+- `call_ML()`: Creates an instance of the ML class
 
-split_data(encode_categorical=True, y='target')
-Splits data into features (X) and target (y), with optional encoding of categorical features.
+- `split_data(encode_categorical=True, y='target')`: Splits data into features (X) and target (y), with optional encoding of categorical features
 
-apply_all_models(flag=False)
-Applies multiple machine learning models to the dataset and compares their scores.
+- `apply_all_models(flag=False)`: Applies multiple machine learning models to the dataset and compares their scores
 
-apply_neural_net()
-Applies a feedforward neural network model (FFNN).
+- `apply_neural_net()`: Applies a feedforward neural network model (FFNN)
 
-apply_CNN()
-Applies the Convolutional Neural Network architecture defined in BaseMLClasses.
+- `apply_CNN()`: Applies the Convolutional Neural Network architecture defined in BaseMLClasses
 
-apply_single_model(cm=False, save_model=False, save_model_name=False)
-Applies a single machine learning model to the dataset.
+- `apply_single_model(cm=False, save_model=False, save_model_name=False)`: Applies a single machine learning model to the dataset
 
-apply_YOLO()
-Applies or trains a YOLO model on an input video or live capture.
+- `apply_YOLO()`: Applies or trains a YOLO model on an input video or live capture
 
-ML_post_process
-A class that handles the post-processing functionality of any saved ML models.
+**ML_post_process**
 
-Parameters:
-data: Input dataframe in the same format as the data used to test/train the model.
-saved_model: str, optional
+This is a class that handles the post-processing functionality of any saved ML models
+
+**Parameters**
+
+- data: Input dataframe in the same format as the data used to test/train the model.
+- saved_model: str, optional
 Input model saved as .pkl - Binary Machine Learning Model string name. Default is None.
-predict: bool, optional
+- predict: bool, optional
 Whether or not to predict on input data. Default is False.
-target: str, optional
+- target: str, optional
 The name of the target feature. Default is None.
-con_cols: str or list of str, optional
+- con_cols: str or list of str, optional
 The continuous column names. Default is None.
-feature: str, optional
+- feature: str, optional
 Specific feature for univariate analysis. Default is None.
-Methods:
-split_data(encode_categorical=True, y='target')
-Splits data into features (X) and target (y), with optional encoding of categorical features.
 
-get_X_test()
-Gets the X_test portion of the dataset from the split data method.
+**Methods**
 
-load_and_predict()
-Loads a saved serialized trained ML/AI model and makes predictions on a set of input variables.
+- `split_data(encode_categorical=True, y='target')`: Splits data into features (X) and target (y), with optional encoding of categorical features
 
-data_info()
-Outputs various information on the dataset, such as shape, values, and unique counts.
+- `get_X_test()`: Gets the X_test portion of the dataset from the split data method
 
-target_plot()
-Plots the target variable output as a bar graph.
+- `load_and_predict()`: Loads a saved serialized trained ML/AI model and makes predictions on a set of input variables
 
-corr_plot()
-Plots the correlation between parameters of the input dataset.
+- `data_info()`: Outputs various information on the dataset, such as shape, values, and unique counts
+
+- `target_plot()`: Plots the target variable output as a bar graph
+
+- `corr_plot()`: Plots the correlation between parameters of the input dataset
 
 Copyright © 2024 <C Jessop>. All rights reserved.
