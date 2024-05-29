@@ -12,15 +12,16 @@ import albumentations as A
 # Lost max is the upper bound for resizing the image
 
 obj_dict = {
-    1: {'folder': "object1", "longes_min": 150, "longest_max": 800},
-    2: {'folder': "object2", 'longest_min': 150, 'longest_max': 800},
-    3: {'folder': "object3", 'longest_min': 150, 'longest_max': 800}
+    1: {'folder': "cropped_rv", "longest_min": 150, "longest_max": 800},
+    2: {'folder': "cropped_inflate", 'longest_min': 150, 'longest_max': 800},
+    3: {'folder': "cropped_bus", 'longest_min': 150, 'longest_max': 800},
+    4: {'folder': "cropped_balloon", 'longest_min': 150, 'longest_max' : 800}
 }
 
 
-PATH_MAIN = 'data'
+PATH_MAIN = 'E:\Data'
 
-for key, _ in obj_dict.item():
+for key, _ in obj_dict.items():
     folder_name  = obj_dict[key]['folder']
 
     file_ims = sorted(os.listdir(os.path.join(PATH_MAIN, folder_name, 'images')))
@@ -51,7 +52,7 @@ def get_im_and_mask(im_path, mask_path):
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
 
     mask = cv2.imread(mask_path)
-    mask = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    mask = cv2.cvtColor(mask_path, cv2.COLOR_BGR2RGB)
 
     mask_bool = mask[:, :, 0] == 0 # This line is the boolean mask
     mask = mask_bool.astype(np.uint8) # This converts it into a binary mask
@@ -64,32 +65,34 @@ def show_bin_mask(im_path, mask_path):
     ax[0].imshow(img)
     ax[1].imshow(mask)
 
-def resize(img, maximum, minimum=None):
+
+def resize_img(img, desired_max, desired_min=None):
+   
     h, w = img.shape[0], img.shape[1]
-
+    
     longest, shortest = max(h, w), min(h, w)
-    longest_new = maximum
-
-    if minimum is not None:
-        shortest_new = minimum
+    longest_new = desired_max
+    if desired_min:
+        shortest_new = desired_min
     else:
-        shortest_new = int(shortest * (longest_new/longest))
-
+        shortest_new = int(shortest * (longest_new / longest))
+    
     if h > w:
         h_new, w_new = longest_new, shortest_new
     else:
         h_new, w_new = shortest_new, longest_new
-
-    trans_resize = A.Compose([
+        
+    transform_resize = A.Compose([
         A.Sequential([
-        A.resize(h_new, w_new, interpolation=1, always_apply=False, p=1)
+        A.Resize(h_new, w_new, interpolation=1, always_apply=False, p=1)
         ], p=1)
     ])
 
-    transformed = trans_resize(image=img)
+    transformed = transform_resize(image=img)
     img_r = transformed["image"]
-
+        
     return img_r
+
 
 def resize_transform_obj(img, mask, longest_min, longest_max, transforms=False):
    
@@ -214,18 +217,27 @@ def create_bg_with_noise(files_bg_imgs,
         idx = np.random.randint(len(files_bg_imgs))
         img_bg = cv2.imread(files_bg_imgs[idx])
         img_bg = cv2.cvtColor(img_bg, cv2.COLOR_BGR2RGB)
-        img_comp_bg = resize(img_bg, bg_max, bg_min)
+        img_comp_bg = resize_img(img_bg, bg_max, bg_min)
         mask_comp_bg = np.zeros((img_comp_bg.shape[0], img_comp_bg.shape[1]), dtype=np.uint8)
 
     for i in range(1, np.random.randint(max_objs_to_add) + 2):
 
         idx = np.random.randint(len(files_bg_noise_imgs))
-        img, mask = resize(files_bg_noise_imgs[idx], files_bg_noise_masks[idx])
+        img, mask = resize_img(files_bg_noise_imgs[idx], files_bg_noise_masks[idx])
         x, y = np.random.randint(img_comp_bg.shape[1]), np.random.randint(img_comp_bg.shape[0])
         img_t, mask_t = resize_transform_obj(img, mask, longest_bg_noise_min, longest_bg_noise_max, transforms=transforms_bg_obj)
         img_comp_bg, _, _ = add_obj(img_comp_bg, mask_comp_bg, img_t, mask_t, x, y, i)
         
     return img_comp_bg
+
+
+img_comp_bg = create_bg_with_noise(file_bg_ims,
+                                   file_bg_noise,
+                                   files_bg_noise_masks,
+                                   max_objs_to_add=20,
+                                   blank_bg=True)
+plt.figure(figsize=(15,15))
+plt.imshow(img_comp_bg)
 
 def check_areas(mask_comp, obj_areas, overlap_degree=0.3):
     obj_ids = np.unique(mask_comp).astype(np.uint8)[1:-1]
