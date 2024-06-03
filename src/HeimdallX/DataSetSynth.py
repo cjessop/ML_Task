@@ -36,12 +36,11 @@ for key, _ in obj_dict.items():
 print("The first five files from the list of object 1 images (sorted): ", obj_dict[1]['images'][:5])
 print("The first five files from the list of object 1 masks (sorted): ", obj_dict[1]['masks'][:5])
 
-file_bg_ims = sorted(os.listdir(os.path.join(PATH_MAIN, folder_name, 'bg')))
-file_bg_ims = [os.path.join(PATH_MAIN, folder_name, 'bg', f) for f in file_bg_ims]
+files_bg_imgs = sorted(os.listdir(os.path.join(PATH_MAIN, 'bg')))
+files_bg_imgs = [os.path.join(PATH_MAIN, 'bg', f) for f in files_bg_imgs]
 
-file_bg_noise = sorted(os.listdir(os.path.join(PATH_MAIN, folder_name, 'bg_noise')))
-file_bg_noise = [os.path.join(PATH_MAIN, folder_name, 'bg_noise', f) for f in file_bg_noise]
-
+files_bg_noise_imgs = sorted(os.listdir(os.path.join(PATH_MAIN, "bg_noise", "images")))
+files_bg_noise_imgs = [os.path.join(PATH_MAIN, "bg_noise", "images", f) for f in files_bg_noise_imgs]
 files_bg_noise_masks = sorted(os.listdir(os.path.join(PATH_MAIN, "bg_noise", "masks")))
 files_bg_noise_masks = [os.path.join(PATH_MAIN, "bg_noise", "masks", f) for f in files_bg_noise_masks]
 
@@ -231,13 +230,13 @@ def create_bg_with_noise(files_bg_imgs,
     return img_comp_bg
 
 
-img_comp_bg = create_bg_with_noise(file_bg_ims,
-                                   file_bg_noise,
-                                   files_bg_noise_masks,
-                                   max_objs_to_add=20,
-                                   blank_bg=True)
-plt.figure(figsize=(15,15))
-plt.imshow(img_comp_bg)
+# img_comp_bg = create_bg_with_noise(files_bg_imgs,
+#                                    files_bg_noise_imgs,
+#                                    files_bg_noise_masks,
+#                                    max_objs_to_add=20)
+# plt.figure(figsize=(15,15))
+# plt.imshow(img_comp_bg)
+
 
 def check_areas(mask_comp, obj_areas, overlap_degree=0.3):
     obj_ids = np.unique(mask_comp).astype(np.uint8)[1:-1]
@@ -351,11 +350,12 @@ def create_yolo_annotations(mask_comp, labels_comp):
 
     return annotations_yolo
 
+
 def generate_data(imgs_number, folder, split='train'):
     time_start = time.time()
-    for j in tqdm(range(imgs_number)):
-        img_comp_bg = create_bg_with_noise(file_bg_ims,
-                                           file_bg_noise,
+    for j in tqdm.tqdm(range(imgs_number)):
+        img_comp_bg = create_bg_with_noise(files_bg_imgs,
+                                           files_bg_noise_imgs,
                                            files_bg_noise_masks,
                                            max_objs_to_add=60)
         
@@ -376,6 +376,11 @@ def generate_data(imgs_number, folder, split='train'):
     time_total = round(time_end - time_start)
     time_per_img = round((time_end - time_start) / imgs_number, 1)
     
-    print("Generation of {} synthetic images complete in {} seconds, ({} seconds per image)".format(imgs_number, time_total, time_per_img))
-    print("Images stored '{}'".format(os.path.join(folder, split, 'images')))
+    print("Generation of {} synthetic images is completed. It took {} seconds, or {} seconds per image".format(imgs_number, time_total, time_per_img))
+    print("Images are stored in '{}'".format(os.path.join(folder, split, 'images')))
     print("Annotations are stored in '{}'".format(os.path.join(folder, split, 'labels')))
+
+
+if __name__ == '__main__':
+    generate_data(1000, folder=PATH_MAIN, split='train')
+    generate_data(200, folder=PATH_MAIN, split='valid')
