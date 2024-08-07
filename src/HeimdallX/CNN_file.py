@@ -10,19 +10,19 @@ try:
     from keras import layers
     from keras.models import Sequential
     from keras.layers import Input
-    from keras.layers import Dense, Dropout, Lambda, AveragePooling2D, Flatten
+    from keras.layers import Dense, Dropout, Lambda, AveragePooling2D, Flatten, Rescaling
     from keras.layers import Rescaling, RandomContrast, RandomZoom, RandomTranslation, RandomBrightness, RandomRotation
     from keras.layers import RandomFlip, RandomCrop
+    from keras.losses import SparseCategoricalCrossentropy
     from keras.utils import image_dataset_from_directory    
     from keras.callbacks import EarlyStopping
     from keras.models import load_model
     from keras.optimizers import Adam
     from keras.applications import mobilenet_v2
     from keras.applications import MobileNetV2
-    from keras.processing.image import load_img
-    from keras.processing.image import img_to_array
-    from tensorflow.keras.preprocessing.image import ImageDataGenerator
-    from tensorflow.keras.callbacks import EarlyStopping
+    from keras.utils import image_dataset_from_directory
+    from keras.utils import img_to_array
+    #from tensorflow.keras.preprocessing.image import ImageDataGenerator
 except ImportError:
     print("Unable to Import Tensorflow/Keras inside of the Base Classes script")
     exit(0)
@@ -32,20 +32,32 @@ import inspect
 
 # Optimizer retains its American spelling because that is the argument name for the methods required - I'm not happy about it either
 
-def prepare_images(max_pixel_val, width, height, data_path):
+def prepare_images(max_pixel_val, width, height, data_path, batch_size):
     """
     A function to prepare images for use in a Convolutional Neural Network (CNN).
 
     This function uses the ImageDataGenerator from keras to 
     """
-    imageGen = ImageDataGenerator(rescale=1/max_pixel_val, validation_split=0.2)
-    trainDatagen = imageGen.flow_from_directory(directory=data_path, target_size=(width,height), class_mode='binary',
-                                                batch_size=16, subset='training')
-    valDatagen = imageGen.flow_from_directory(directory=data_path, target_size=(width,height), class_mode='binary',
-                                                batch_size=16, subset='validation')
-    
-    return trainDatagen, valDatagen
 
+    trainDs = image_dataset_from_directory(directory=data_path, 
+                                            validation_split=0.2,
+                                            subset="training",
+                                            seed=123,
+                                            image_size=(height, width),
+                                            batch_size=batch_size)
+    valDs = image_dataset_from_directory(directory=data_path, 
+                                            validation_split=0.2,
+                                            subset="validation",
+                                            seed=123,
+                                            image_size=(height, width),
+                                            batch_size=batch_size)
+    #imageGen = ImageDataGenerator(rescale=1/max_pixel_val, validation_split=0.2)
+    #trainDatagen = imageGen.flow_from_directory(directory=data_path, target_size=(width,height), class_mode='binary',
+    #                                            batch_size=16, subset='training')
+    #valDatagen = imageGen.flow_from_directory(directory=data_path, target_size=(width,height), class_mode='binary',
+    #                                            batch_size=16, subset='validation')
+    
+    return trainDs, valDs
 
 class CNN_config():
     """
@@ -73,7 +85,7 @@ class CNN_config():
         model_create(): Compiles and trains the CNN model.
         feature_map(model, image): Generates and displays feature maps for a given image.
     """
-    def __init__(self, path, optimizer, loss, metrics, train_images, test_images, train_labels, test_labels, config_list=[], conv_iter=0, dense_iter=0) -> None:
+    def __init__(self, path, optimizer, loss, metrics, train_images=None, test_images=None, train_labels=None, test_labels=None, config_list=[], conv_iter=0, dense_iter=0) -> None:
         """
         Initialises the CCN_config class with the given parameters.
 
@@ -124,44 +136,49 @@ class CNN_config():
             tensorflow.keras.Model: The created CNN model.
         """
         config_list = self.read()
-        for item in range(0, len(config_list)):
-            if config_list[item] == 0:
-                if ("Sequential" in config_list[item]):
-                    model = models.Sequential()
-                    pass
+        model = None
+        
+        for item in range(len(config_list)):
+            if item == 0:
+                if "Sequential" in config_list[item]:
+                    model = Sequential()
                 else:
                     print("Model must start with a sequential layer")
-                    exit
+                    return None  # or raise an exception
 
             else:
-                if ("Conv2D" in config_list[item]):
+                if model is None:
+                    print("Model was not initialized properly")
+                    return None  # or raise an exception
+
+                if "Rescaling" in config_list[item]:
+                    model.add(layers.Rescaling(1./255))
+
+                elif "Conv2D" in config_list[item]:
                     item_splits = config_list[item].split(",")
-                    if (self.conv_iter < 1):
+                    if self.conv_iter < 1:
                         model.add(layers.Conv2D(int(item_splits[1]), (int(item_splits[2]), int(item_splits[3])), 
                                                 activation=item_splits[4], input_shape=(int(item_splits[1]), int(item_splits[1]), int(item_splits[2]))))
                         self.conv_iter += 1
                     else:
                         model.add(layers.Conv2D(int(item_splits[1]), (int(item_splits[2]), int(item_splits[3])), 
                                                 activation=item_splits[4]))
-                        pass
                     
-                elif ("MaxPooling2D" in config_list[item]):
+                elif "MaxPooling2D" in config_list[item]:
                     item_splits = config_list[item].split(",")
                     model.add(layers.MaxPooling2D((int(item_splits[1]), int(item_splits[2]))))
 
-                elif ("Flatten" in config_list[item]):
-                    item_splits = config_list[item].split(",")
+                elif "Flatten" in config_list[item]:
                     model.add(layers.Flatten())
 
-                elif ("Dense" in config_list[item]):
+                elif "Dense" in config_list[item]:
                     item_splits = config_list[item].split(",")
-                    if (self.dense_iter < 0):
-                        model.add(layers.Dense(int(item_splits[1])), activation=item_splits[2])
+                    if self.dense_iter < 0:
+                        model.add(layers.Dense(int(item_splits[1]), activation=item_splits[2]))
                         print(item_splits)
                     else:
                         model.add(layers.Dense(int(item_splits[1])))
-                        pass
-            
+        
         return model
 
 
@@ -212,7 +229,7 @@ class CNN_config():
         """
         model = self.model_create()
 
-        img = load_img(image, target_size=(224, 224))   
+        #img = load_img(image, target_size=(224, 224))   
         img = img_to_array(img)
         img = np.expand_dims(img, axis=0)
         #img = preprocess_input(img) # Need to use a different function for this
@@ -290,3 +307,10 @@ class CNN_config():
 
         cm_disp.plot(include_values=True, cmap="viridis", ax=None, xticks_rotation='horizontal')
         plt.show()
+
+        
+
+if __name__ == "__main__":
+    CNN_build = CNN_config(r"C:\Users\chris\OneDrive\Documents\HeimPy\src\HeimdallX\CNN_build.txt", "Adam", None, 'accuracy')
+
+    CNN_build.createCNN()
