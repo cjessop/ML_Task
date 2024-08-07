@@ -54,11 +54,10 @@ try:
     from keras.applications import MobileNetV2
 except ImportError:
     print("Unable to Import Tensorflow/Keras inside of the Base Classes script")
-    pass
+    exit(0)
 
 from abc import ABC, abstractmethod
 import inspect
-
 
 model_dict = {
     "SupportVector": "SVM",
@@ -556,6 +555,18 @@ class ML(BasePredictor):
         return gbc
 
     def abc(self, X_train, X_test, y_train, y_test):
+        """
+        Function to apply an ada boosted classifier.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+            y_train (pandas.Series): Training target variable.
+            y_test (pandas.Series): Test target variable.
+
+        Returns:
+            AdaBoostedClassifier: Trained ada boosted classifier model
+        """
         abc = AdaBoostClassifier()
         abc.fit(X_train, y_train)
         predictions = abc.predict(X_test)
@@ -563,6 +574,19 @@ class ML(BasePredictor):
         return abc
     
     def ec(self, X_train, X_test, y_train, y_test, voting='hard', random_state=1):
+        """
+        Function to apply an ensemble classifier.
+
+        Args:
+            X_train (pandas.DataFrame): Training features.
+            X_test (pandas.DataFrame): Test features.
+            y_train (pandas.Series): Training target variable.
+            y_test (pandas.Series): Test target variable.
+            voting: Voting method for final classification (hard or soft voting).
+
+        Returns:
+            AdaBoostedClassifier: Trained ada boosted classifier model
+        """
         clf1 = LogisticRegression(random_state=random_state)
         clf2 = RandomForestClassifier(random_state=random_state)
         clf3 = GaussianNB()
@@ -601,7 +625,20 @@ class ML(BasePredictor):
     #     return model
     
     # Function to apply cross validation
+    
     def cross_validation(self, model, X, y, cv=5):
+        """
+        Cross validation method. Applies K-fold cross-validation to a selected model.
+
+        Args:
+            model: The machine learning model to apply K-fold CV to.
+            X: The feature data.
+            y: The target variable.
+            cv: Number of folds in a stratified KFold.
+
+        Returns:
+            score of K-fold cross-validation for the selected model
+        """
         scores = cross_val_score(model, X, y, cv=cv)
         print(scores)
         print(scores.mean())

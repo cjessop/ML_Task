@@ -1,0 +1,9 @@
+Sequential
+Conv2D, 32, 3, 3, relu
+MaxPooling2D, 2, 2
+Conv2D, 64, 3, 3, relu
+MaxPooling2D, 2, 2
+Conv2D, 64, 3, 3, relu
+Flatten
+Dense, 64, relu
+Dense, 10

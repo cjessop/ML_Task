@@ -10,7 +10,7 @@ try:
     import keras
 except ImportError:
     print("Unable to import Tensorflow/Keras inside of the ML packaging script")
-    pass
+    exit(0)
 
 from Config import config
 import pickle
@@ -19,7 +19,7 @@ import os
 import numpy as np
 import pandas as pd
 #import plotly.express as px
-# from yolo_class import Utils, YOLO_main, Object_tracker, YOLO_detector
+from yolo_class import Utils, YOLO_main, Object_tracker, YOLO_detector
 import matplotlib.pyplot as plt
 import warnings
 import glob
